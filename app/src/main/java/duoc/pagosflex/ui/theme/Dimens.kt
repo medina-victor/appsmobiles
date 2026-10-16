@@ -19,7 +19,7 @@ object Dimens {
     // Campos de texto
     val radioCampo = 12.dp
 
-    // Tarjetas (Card)
+    // Tarjetas
     val radioTarjeta = 20.dp
     val elevacionTarjeta = 2.dp
 
