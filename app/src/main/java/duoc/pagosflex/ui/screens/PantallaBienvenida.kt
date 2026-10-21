@@ -1,138 +1,90 @@
 package duoc.pagosflex.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import duoc.pagosflex.ui.theme.*
 
 @Composable
 fun PantallaBienvenida(
-    onIniciarSesionClick: () -> Unit
+    alIniciarSesion: () -> Unit,
+    alRegistrarse: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Blanco)
-            .statusBarsPadding()
-            .padding(Dimens.espacioPantalla),
-        horizontalAlignment = Alignment.Start,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background
+    ) { valoresPadding ->
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp)
+                .fillMaxSize()
+                .padding(valoresPadding)
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(PrimarioClaro)
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "PAGOFLEX APP",
-                    fontSize = 11.sp,
+                    text = "Bienvenido a PagoFlex",
+                    fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Primario
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center
                 )
-            }
 
-            Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = "Gestiona tus\npagos sin\ncomplicaciones.",
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Black,
-                color = TextoOscuro,
-                lineHeight = 42.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Controla tus compromisos financieros y realiza el seguimiento de tus solicitudes desde un solo lugar.",
-                fontSize = 14.sp,
-                color = TextoGris,
-                lineHeight = 20.sp
-            )
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(Dimens.radioTarjeta),
-            colors = CardDefaults.cardColors(containerColor = FondoClaro)
-        ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Primario),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = "💳", fontSize = 20.sp)
-                }
-
-                Spacer(modifier = Modifier.width(14.dp))
-
-                Column {
-                    Text(
-                        text = "Rápido y seguro",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextoOscuro
-                    )
-                    Text(
-                        text = "Accede a tus cuentas y perfiles en un toque.",
-                        fontSize = 12.sp,
-                        color = TextoGris
-                    )
-                }
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp)
-        ) {
-            Button(
-                onClick = onIniciarSesionClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(Dimens.alturaBoton),
-                shape = RoundedCornerShape(Dimens.radioBoton),
-                colors = ButtonDefaults.buttonColors(containerColor = Primario)
-            ) {
                 Text(
-                    text = "Iniciar sesión",
-                    color = Blanco,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    text = "La forma más sencilla y segura de gestionar tus compromisos de pago al día.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
+
+                Spacer(modifier = Modifier.height(48.dp))
+
+                Button(
+                    onClick = alIniciarSesion,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text(text = "Iniciar Sesión", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = alRegistrarse,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(text = "Crear Cuenta", fontSize = 16.sp)
+                }
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Plataforma oficial de gestión PagoFlex",
-                fontSize = 11.sp,
-                color = TextoGris,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
 }

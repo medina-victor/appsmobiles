@@ -6,14 +6,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 
 import duoc.pagosflex.navigation.AppNavegacion
-import duoc.pagosflex.ui.theme.PagosFlexTheme
+import duoc.pagosflex.ui.theme.TemaPagoFlex
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            PagosFlexTheme {
+            TemaPagoFlex() {
                 AppNavegacion()
             }
         }

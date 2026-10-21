@@ -2,9 +2,21 @@ package duoc.pagosflex.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,7 +27,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import duoc.pagosflex.ui.theme.*
 
 @Composable
 fun BarraNavegacionInferior(
@@ -28,12 +39,11 @@ fun BarraNavegacionInferior(
             .wrapContentHeight(),
         contentAlignment = Alignment.BottomCenter
     ) {
-        // Fondo blanco de la barra
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
                 .shadow(12.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
-            color = Blanco,
+            color = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
             Row(
@@ -44,7 +54,6 @@ fun BarraNavegacionInferior(
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Item 0: Inicio
                 ItemNavegacion(
                     icono = "🏠",
                     etiqueta = "Inicio",
@@ -53,7 +62,6 @@ fun BarraNavegacionInferior(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Item 1: Productos
                 ItemNavegacion(
                     icono = "💳",
                     etiqueta = "Productos",
@@ -62,10 +70,8 @@ fun BarraNavegacionInferior(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Espacio reservado para el botón central de Pagar
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Item 3: Historial
                 ItemNavegacion(
                     icono = "📊",
                     etiqueta = "Historial",
@@ -74,7 +80,6 @@ fun BarraNavegacionInferior(
                     modifier = Modifier.weight(1f)
                 )
 
-                // Item 4: Ajustes
                 ItemNavegacion(
                     icono = "⚙️",
                     etiqueta = "Ajustes",
@@ -85,7 +90,6 @@ fun BarraNavegacionInferior(
             }
         }
 
-        // --- BOTÓN FLOTANTE CENTRAL ("Pagar Rápido") ---
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
@@ -97,7 +101,7 @@ fun BarraNavegacionInferior(
                     .size(52.dp)
                     .shadow(6.dp, CircleShape)
                     .clip(CircleShape)
-                    .background(Primario),
+                    .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center
             ) {
                 Text(text = "⚡", fontSize = 22.sp)
@@ -107,7 +111,7 @@ fun BarraNavegacionInferior(
                 text = "Pagar",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
-                color = Primario
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
@@ -131,7 +135,7 @@ private fun ItemNavegacion(
             text = etiqueta,
             fontSize = 10.sp,
             fontWeight = if (activo) FontWeight.Bold else FontWeight.Normal,
-            color = if (activo) Primario else TextoGris
+            color = if (activo) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

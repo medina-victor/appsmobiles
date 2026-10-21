@@ -1,87 +1,129 @@
 package duoc.pagosflex.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import duoc.pagosflex.data.UsuarioDbHelper
-import duoc.pagosflex.model.Rol
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import duoc.pagosflex.data.SesionUsuarioManager
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
-data class RegistroUiState(
-    val rolSeleccionado: Rol = Rol.CLIENTE,
-    val nombre: String = "",
-    val rut: String = "",
-    val email: String = "",
-    val telefono: String = "",
-    val areaOEmpresa: String = "",
-    val codigoAcceso: String = "",
-    val errorMensaje: String? = null,
-    val registroExitoso: Boolean = false
-)
+class RegistroViewModel : ViewModel() {
 
-class RegistroViewModel(application: Application) : AndroidViewModel(application) {
+    private val _estadoUi = MutableStateFlow<EstadoRegistro>(EstadoRegistro.Inactivo)
+    val estadoUi: StateFlow<EstadoRegistro> = _estadoUi.asStateFlow()
 
-    private val dbHelper = UsuarioDbHelper(application)
+    var nombre = MutableStateFlow("")
+    var rut = MutableStateFlow("")
+    var correo = MutableStateFlow("")
+    var contrasena = MutableStateFlow("")
+    var confirmarContrasena = MutableStateFlow("")
+    var rolSeleccionado = MutableStateFlow(TipoRolUsuario.CLIENTE)
 
-    private val _uiState = MutableStateFlow(RegistroUiState())
-    val uiState: StateFlow<RegistroUiState> = _uiState.asStateFlow()
+    var errorNombre = MutableStateFlow<String?>(null)
+    var errorRut = MutableStateFlow<String?>(null)
+    var errorCorreo = MutableStateFlow<String?>(null)
 
-    fun onRolCambiado(nuevoRol: Rol) {
-        _uiState.value = _uiState.value.copy(
-            rolSeleccionado = nuevoRol,
-            errorMensaje = null
-        )
+    var tieneMinimoCaracteres = MutableStateFlow(false)
+    var tieneMayuscula = MutableStateFlow(false)
+    var tieneMinuscula = MutableStateFlow(false)
+    var tieneNumero = MutableStateFlow(false)
+    var tieneCaracterEspecial = MutableStateFlow(false)
+    var contrasenasCoinciden = MutableStateFlow(false)
+    var terminosAceptados = MutableStateFlow(false)
+
+    val formularioValido: StateFlow<Boolean> = combine(
+        nombre, rut, correo, contrasena, confirmarContrasena,
+        terminosAceptados, tieneMinimoCaracteres, tieneMayuscula,
+        tieneMinuscula, tieneNumero, tieneCaracterEspecial, contrasenasCoinciden
+    ) { params ->
+        val nom = params[0] as String
+        val r = params[1] as String
+        val cor = params[2] as String
+        val term = params[5] as Boolean
+        val minChar = params[6] as Boolean
+        val mayus = params[7] as Boolean
+        val minus = params[8] as Boolean
+        val num = params[9] as Boolean
+        val esp = params[10] as Boolean
+        val coinc = params[11] as Boolean
+
+        nom.isNotBlank() && r.length >= 8 && cor.isNotBlank() &&
+                android.util.Patterns.EMAIL_ADDRESS.matcher(cor).matches() &&
+                term && minChar && mayus && minus && num && esp && coinc
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    fun alCambiarRol(nuevoRol: TipoRolUsuario) {
+        rolSeleccionado.value = nuevoRol
+        rut.value = ""
+        errorRut.value = null
     }
 
-    fun onNombreCambiado(valor: String) { _uiState.value = _uiState.value.copy(nombre = valor) }
-    fun onRutCambiado(valor: String) { _uiState.value = _uiState.value.copy(rut = valor) }
-    fun onEmailCambiado(valor: String) { _uiState.value = _uiState.value.copy(email = valor) }
-    fun onTelefonoCambiado(valor: String) { _uiState.value = _uiState.value.copy(telefono = valor) }
-    fun onAreaOEmpresaCambiado(valor: String) { _uiState.value = _uiState.value.copy(areaOEmpresa = valor) }
-    fun onCodigoAccesoCambiado(valor: String) { _uiState.value = _uiState.value.copy(codigoAcceso = valor) }
-
-    fun registrarCuenta(onExito: () -> Unit) {
-        val state = _uiState.value
-
-        // Validaciones básicas
-        if (state.nombre.isBlank() || state.rut.isBlank() || state.email.isBlank()) {
-            _uiState.value = state.copy(errorMensaje = "Por favor completa los campos obligatorios.")
-            return
+    fun alCambiarNombre(nuevoNombre: String) {
+        nombre.value = nuevoNombre
+        when {
+            nuevoNombre.isBlank() -> errorNombre.value = "Campo obligatorio"
+            else -> errorNombre.value = null
         }
+    }
 
-        if (state.rolSeleccionado == Rol.EJECUTIVO && state.areaOEmpresa.isBlank()) {
-            _uiState.value = state.copy(errorMensaje = "Indica la Empresa o Razón Social.")
-            return
+    fun alCambiarRut(nuevoRut: String) {
+        rut.value = nuevoRut
+        when {
+            nuevoRut.isBlank() -> errorRut.value = "El RUT es obligatorio"
+            nuevoRut.length < 8 -> errorRut.value = "Ingrese un RUT válido"
+            else -> errorRut.value = null
         }
+    }
 
-        if (state.rolSeleccionado == Rol.AGENTE && state.codigoAcceso.isBlank()) {
-            _uiState.value = state.copy(errorMensaje = "Ingresa tu Código de Agente PagoFlex.")
-            return
+    fun alCambiarCorreo(nuevoCorreo: String) {
+        correo.value = nuevoCorreo
+        val esValido = android.util.Patterns.EMAIL_ADDRESS.matcher(nuevoCorreo).matches()
+        when {
+            nuevoCorreo.isBlank() -> errorCorreo.value = "El correo es obligatorio"
+            !esValido -> errorCorreo.value = "Ingrese un correo válido"
+            else -> errorCorreo.value = null
         }
+    }
 
-        // Obtener iniciales para el Avatar
-        val iniciales = state.nombre
-            .split(" ")
-            .take(2)
-            .mapNotNull { it.firstOrNull()?.uppercaseChar() }
-            .joinToString("")
+    fun alCambiarContrasena(nuevaContrasena: String) {
+        contrasena.value = nuevaContrasena
+        tieneMinimoCaracteres.value = nuevaContrasena.length >= 8
+        tieneMayuscula.value = nuevaContrasena.any { it.isUpperCase() }
+        tieneMinuscula.value = nuevaContrasena.any { it.isLowerCase() }
+        tieneNumero.value = nuevaContrasena.any { it.isDigit() }
+        tieneCaracterEspecial.value = nuevaContrasena.any { !it.isLetterOrDigit() }
+        contrasenasCoinciden.value = nuevaContrasena.isNotEmpty() && nuevaContrasena == confirmarContrasena.value
+    }
 
-        // Guardar en la SQLite
-        val insertado = dbHelper.registrarUsuario(
-            nombre = state.nombre,
-            rut = state.rut,
-            rol = state.rolSeleccionado,
-            codigo = if (state.rolSeleccionado == Rol.AGENTE) state.codigoAcceso else state.rut.take(4),
-            detalle = if (state.rolSeleccionado == Rol.CLIENTE) "Cliente Final" else state.areaOEmpresa,
-            avatar = if (iniciales.isNotEmpty()) iniciales else "PF"
-        )
+    fun alCambiarConfirmarContrasena(nuevaConfirmacion: String) {
+        confirmarContrasena.value = nuevaConfirmacion
+        contrasenasCoinciden.value = nuevaConfirmacion.isNotEmpty() && nuevaConfirmacion == contrasena.value
+    }
 
-        if (insertado) {
-            _uiState.value = state.copy(registroExitoso = true, errorMensaje = null)
-            onExito()
-        } else {
-            _uiState.value = state.copy(errorMensaje = "Error al guardar el usuario en la base de datos.")
+    fun alCambiarTerminos(aceptado: Boolean) {
+        terminosAceptados.value = aceptado
+    }
+
+    fun registrarUsuario(alExito: () -> Unit) {
+        if (!formularioValido.value) return
+
+        viewModelScope.launch {
+            _estadoUi.value = EstadoRegistro.Cargando
+            delay(1200)
+
+            SesionUsuarioManager.iniciarSesion(
+                nombre = nombre.value,
+                correo = correo.value,
+                rol = rolSeleccionado.value
+            )
+
+            _estadoUi.value = EstadoRegistro.Exito
+            alExito()
         }
     }
 }

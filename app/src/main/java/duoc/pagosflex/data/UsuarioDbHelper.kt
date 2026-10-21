@@ -37,7 +37,7 @@ class UsuarioDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         """.trimIndent()
         db.execSQL(createTable)
 
-        // Precargar los 3 perfiles demo exactos de tu maqueta
+
         precargarUsuariosDemo(db)
     }
 
@@ -105,7 +105,7 @@ class UsuarioDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         cursor.close()
         return lista
     }
-    // ingresar un nuevo usuario desde registro
+
     fun registrarUsuario(
         nombre: String,
         rut: String,

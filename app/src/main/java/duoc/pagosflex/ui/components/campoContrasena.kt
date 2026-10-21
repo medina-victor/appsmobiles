@@ -1,67 +1,66 @@
 package duoc.pagosflex.ui.components
-
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 
-import duoc.pagosflex.R
-import duoc.pagosflex.ui.styles.EstiloCampo
-import duoc.pagosflex.ui.theme.Dimens
-
-
-
-
 @Composable
 fun CampoContrasena(
     valor: String,
-    onValorCambia: (String) -> Unit,
-    etiqueta: String,
-    visible: Boolean,
-    onAlternarVisible: () -> Unit,
+    alCambiarValor: (String) -> Unit,
+    etiqueta: String = "Contraseña",
     modifier: Modifier = Modifier,
-    error: String? = null
+    mensajeError: String? = null,
+    opcionesTeclado: KeyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
 ) {
+    var mostrarContrasena by remember { mutableStateOf(false) }
+
     OutlinedTextField(
         value = valor,
-        onValueChange = onValorCambia,
-        modifier = modifier.fillMaxWidth(),
+        onValueChange = alCambiarValor,
         label = { Text(etiqueta) },
         leadingIcon = {
-            Icon(
-                painter = painterResource(R.drawable.ic_candado),
-                contentDescription = null,
-                modifier = Modifier.size(Dimens.tamanoIcono)
-            )
+            Icon(imageVector = Icons.Default.Lock, contentDescription = null)
         },
         trailingIcon = {
-            IconButton(onClick = onAlternarVisible) {
+            IconButton(onClick = { mostrarContrasena = !mostrarContrasena }) {
                 Icon(
-                    painter = painterResource(
-                        if (visible) R.drawable.ic_ojo_tachado else R.drawable.ic_ojo
-                    ),
-                    contentDescription = if (visible) "Ocultar contraseña" else "Mostrar contraseña",
-                    modifier = Modifier.size(Dimens.tamanoIcono)
+                    imageVector = if (mostrarContrasena) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = if (mostrarContrasena) "Ocultar contraseña" else "Mostrar contraseña"
                 )
             }
         },
-        visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-        isError = error != null,
-        supportingText = { if (error != null) Text(error) },
+        visualTransformation = if (mostrarContrasena) VisualTransformation.None else PasswordVisualTransformation(),
+        isError = mensajeError != null,
+        supportingText = {
+            mensajeError?.let {
+                Text(text = it, color = MaterialTheme.colorScheme.error)
+            }
+        },
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-        shape = EstiloCampo.forma,
-        colors = EstiloCampo.colores()
+        keyboardOptions = opcionesTeclado,
+        modifier = modifier.fillMaxWidth(),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            errorBorderColor = MaterialTheme.colorScheme.error
+        )
     )
 }

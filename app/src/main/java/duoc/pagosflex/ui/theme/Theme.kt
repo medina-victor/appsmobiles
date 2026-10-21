@@ -1,59 +1,67 @@
 package duoc.pagosflex.ui.theme
 
+import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
-private val EsquemaClaro = lightColorScheme(
-    primary = Primario,
-    onPrimary = Blanco,
-    primaryContainer = PrimarioClaro,
-    onPrimaryContainer = PrimarioOscuro,
-    secondary = Secundario,
-    onSecondary = Blanco,
-    tertiary = Acento,
-    onTertiary = Blanco,
-    background = FondoClaro,
-    onBackground = TextoOscuro,
-    surface = SuperficieClara,
-    onSurface = TextoOscuro
-)
-
-private val EsquemaOscuro = darkColorScheme(
-    primary = PrimarioClaro,
-    onPrimary = PrimarioOscuro,
-    primaryContainer = PrimarioOscuro,
-    onPrimaryContainer = PrimarioClaro,
-    secondary = Secundario,
-    onSecondary = Blanco,
-    tertiary = Acento,
-    onTertiary = Blanco,
+private val EsquemaColoresOscuro = darkColorScheme(
+    primary = RojoPrincipalVarianteTemaOscuro,
+    onPrimary = SuperficieOscura,
+    primaryContainer = RojoContenedorOscuro,
+    onPrimaryContainer = SobreRojoContenedorOscuro,
+    secondary = TextoSecundarioOscuro,
     background = FondoOscuro,
-    onBackground = TextoClaro,
     surface = SuperficieOscura,
-    onSurface = TextoClaro
+    surfaceVariant = SuperficieVarianteOscura,
+    onBackground = TextoPrincipalOscuro,
+    onSurface = TextoPrincipalOscuro,
+    onSurfaceVariant = TextoSecundarioOscuro,
+    outline = BordeOscuro,
+    error = EstadoError
 )
 
-private val Formas = Shapes(
-    small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(12.dp),
-    large = RoundedCornerShape(20.dp)
+private val EsquemaColoresClaro = lightColorScheme(
+    primary = RojoPrincipal,
+    onPrimary = SuperficieClara,
+    primaryContainer = RojoContenedorClaro,
+    onPrimaryContainer = SobreRojoContenedorClaro,
+    secondary = TextoSecundarioClaro,
+    background = FondoClaro,
+    surface = SuperficieClara,
+    surfaceVariant = SuperficieVarianteClara,
+    onBackground = TextoPrincipalClaro,
+    onSurface = TextoPrincipalClaro,
+    onSurfaceVariant = TextoSecundarioClaro,
+    outline = BordeClaro,
+    error = EstadoError
 )
 
 @Composable
-fun PagosFlexTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit
+fun TemaPagoFlex(
+    temaOscuro: Boolean = isSystemInDarkTheme(),
+    contenido: @Composable () -> Unit
 ) {
+    val esquemaColores = if (temaOscuro) EsquemaColoresOscuro else EsquemaColoresClaro
+
+    val vista = LocalView.current
+    if (!vista.isInEditMode) {
+        SideEffect {
+            val ventana = (vista.context as Activity).window
+            ventana.statusBarColor = esquemaColores.background.toArgb()
+            WindowCompat.getInsetsController(ventana, vista).isAppearanceLightStatusBars = !temaOscuro
+        }
+    }
+
     MaterialTheme(
-        colorScheme = if (darkTheme) EsquemaOscuro else EsquemaClaro,
+        colorScheme = esquemaColores,
         typography = Tipografia,
-        shapes = Formas,
-        content = content
+        content = contenido
     )
 }

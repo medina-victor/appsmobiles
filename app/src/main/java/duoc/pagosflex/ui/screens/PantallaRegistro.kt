@@ -1,187 +1,169 @@
 package duoc.pagosflex.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import duoc.pagosflex.model.Rol
-import duoc.pagosflex.ui.theme.*
+import duoc.pagosflex.ui.components.BotonPrimario
+import duoc.pagosflex.ui.components.BotonTerminosYCondiciones
+import duoc.pagosflex.ui.components.BotonVolver
+import duoc.pagosflex.ui.components.CampoContrasena
+import duoc.pagosflex.ui.components.CampoDeTexto
+import duoc.pagosflex.ui.components.CampoRut
+import duoc.pagosflex.ui.components.ListaRequerimientosPassword
+import duoc.pagosflex.ui.components.SelectorRol
+import duoc.pagosflex.viewmodel.EstadoRegistro
 import duoc.pagosflex.viewmodel.RegistroViewModel
+import duoc.pagosflex.viewmodel.TipoRolUsuario
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaRegistro(
-    onVolver: () -> Unit,
-    onRegistroExitoso: () -> Unit,
-    viewModel: RegistroViewModel = viewModel()
+    alVolverAtras: () -> Unit,
+    alRegistroExitoso: () -> Unit,
+    vistaModelo: RegistroViewModel = viewModel()
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val estadoUi by vistaModelo.estadoUi.collectAsState()
+    val nombre by vistaModelo.nombre.collectAsState()
+    val rut by vistaModelo.rut.collectAsState()
+    val correo by vistaModelo.correo.collectAsState()
+    val contrasena by vistaModelo.contrasena.collectAsState()
+    val confirmarContrasena by vistaModelo.confirmarContrasena.collectAsState()
+    val rolSeleccionado by vistaModelo.rolSeleccionado.collectAsState()
+    val terminosAceptados by vistaModelo.terminosAceptados.collectAsState()
+    val esValido by vistaModelo.formularioValido.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Blanco)
-            .padding(Dimens.espacioPantalla)
-            .verticalScroll(rememberScrollState())
-    ) {
-        // Encabezado
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onVolver) {
-                Text(text = "←", fontSize = 20.sp, color = Primario)
-            }
-            Text(text = "Registro de Usuario", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextoOscuro)
-        }
+    val errorNombre by vistaModelo.errorNombre.collectAsState()
+    val errorRut by vistaModelo.errorRut.collectAsState()
+    val errorCorreo by vistaModelo.errorCorreo.collectAsState()
 
-        Spacer(modifier = Modifier.height(Dimens.espacioMedio))
+    val minChar by vistaModelo.tieneMinimoCaracteres.collectAsState()
+    val mayus by vistaModelo.tieneMayuscula.collectAsState()
+    val minus by vistaModelo.tieneMinuscula.collectAsState()
+    val num by vistaModelo.tieneNumero.collectAsState()
+    val esp by vistaModelo.tieneCaracterEspecial.collectAsState()
+    val coinciden by vistaModelo.contrasenasCoinciden.collectAsState()
 
-        Text(text = "CREAR CUENTA", fontSize = 11.sp, color = Primario, fontWeight = FontWeight.Bold)
-        Text(text = "Únete a PagoFlex", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Primario)
-        Spacer(modifier = Modifier.height(Dimens.espacioChico))
-        Text(
-            text = "Selecciona tu perfil de usuario y completa los datos requeridos.",
-            fontSize = 13.sp,
-            color = TextoGris
-        )
+    val esEmpresa = rolSeleccionado == TipoRolUsuario.EMPRESA
 
-        Spacer(modifier = Modifier.height(Dimens.espacioMedio))
-
-        // Selector de Rol (Segmented / Buttons)
-        Text(text = "Selecciona tu Rol:", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextoGris)
-        Spacer(modifier = Modifier.height(Dimens.espacioChico))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            listOf(
-                Rol.CLIENTE to "Usuario Final",
-                Rol.AGENTE to "Agente PF",
-                Rol.EJECUTIVO to "Ejecutivo"
-            ).forEach { (rolItem, etiqueta) ->
-                val esSeleccionado = state.rolSeleccionado == rolItem
-                Button(
-                    onClick = { viewModel.onRolCambiado(rolItem) },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (esSeleccionado) Primario else PrimarioClaro,
-                        contentColor = if (esSeleccionado) Blanco else Primario
-                    ),
-                    shape = RoundedCornerShape(Dimens.radioCampo)
-                ) {
-                    Text(text = etiqueta, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(Dimens.espacioGrande))
-
-        // Formulario Dinámico según el Rol
-        OutlinedTextField(
-            value = state.nombre,
-            onValueChange = viewModel::onNombreCambiado,
-            label = { Text("Nombre completo *") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(Dimens.espacioChico))
-
-        OutlinedTextField(
-            value = state.rut,
-            onValueChange = viewModel::onRutCambiado,
-            label = { Text("RUT (ej: 12.345.678-9) *") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(Dimens.espacioChico))
-
-        OutlinedTextField(
-            value = state.email,
-            onValueChange = viewModel::onEmailCambiado,
-            label = { Text(if (state.rolSeleccionado == Rol.CLIENTE) "Correo electrónico *" else "Correo corporativo *") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(Dimens.espacioChico))
-
-        // CAMPOS ESPECÍFICOS SEGÚN ROL
-        when (state.rolSeleccionado) {
-            Rol.CLIENTE -> {
-                OutlinedTextField(
-                    value = state.telefono,
-                    onValueChange = viewModel::onTelefonoCambiado,
-                    label = { Text("Teléfono / Celular") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
-            Rol.AGENTE -> {
-                OutlinedTextField(
-                    value = state.areaOEmpresa,
-                    onValueChange = viewModel::onAreaOEmpresaCambiado,
-                    label = { Text("Área / Departamento (ej: Soporte, Comercial)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(Dimens.espacioChico))
-                OutlinedTextField(
-                    value = state.codigoAcceso,
-                    onValueChange = viewModel::onCodigoAccesoCambiado,
-                    label = { Text("Código de Agente / Credencial *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
-            Rol.EJECUTIVO -> {
-                OutlinedTextField(
-                    value = state.areaOEmpresa,
-                    onValueChange = viewModel::onAreaOEmpresaCambiado,
-                    label = { Text("Empresa Cliente / Razón Social *") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-                Spacer(modifier = Modifier.height(Dimens.espacioChico))
-                OutlinedTextField(
-                    value = state.telefono,
-                    onValueChange = viewModel::onTelefonoCambiado,
-                    label = { Text("Teléfono de contacto de Empresa") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            }
-        }
-
-        state.errorMensaje?.let { error ->
-            Spacer(modifier = Modifier.height(Dimens.espacioMedio))
-            Text(text = error, color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-        }
-
-        Spacer(modifier = Modifier.height(Dimens.espacioGrande))
-
-        Button(
-            onClick = { viewModel.registrarCuenta(onRegistroExitoso) },
+    Scaffold(
+        topBar = {
+            BotonVolver(
+                onVolver = alVolverAtras,
+                titulo = "Registro de Usuario"
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { valoresPadding ->
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(Dimens.alturaBoton),
-            shape = RoundedCornerShape(Dimens.radioBoton),
-            colors = ButtonDefaults.buttonColors(containerColor = Primario)
+                .fillMaxSize()
+                .padding(valoresPadding)
+                .padding(20.dp),
+            contentAlignment = Alignment.TopCenter
         ) {
-            Text(text = "Crear Cuenta e Iniciar", color = Blanco, fontWeight = FontWeight.Bold)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Crear Cuenta PagoFlex",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                SelectorRol(
+                    rolSeleccionado = rolSeleccionado,
+                    alSeleccionarRol = { vistaModelo.alCambiarRol(it) }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                CampoDeTexto(
+                    valor = nombre,
+                    alCambiarValor = { vistaModelo.alCambiarNombre(it) },
+                    etiqueta = if (esEmpresa) "Nombre de la Empresa / Razón Social" else "Nombre Completo",
+                    icono = Icons.Default.Person,
+                    mensajeError = errorNombre
+                )
+
+                CampoRut(
+                    valor = rut,
+                    alCambiarValor = { vistaModelo.alCambiarRut(it) },
+                    etiqueta = if (esEmpresa) "RUT de la Empresa (Ej: 76.543.210-K)" else "RUT Personal (Ej: 12.345.678-9)",
+                    mensajeError = errorRut
+                )
+
+                CampoDeTexto(
+                    valor = correo,
+                    alCambiarValor = { vistaModelo.alCambiarCorreo(it) },
+                    etiqueta = if (esEmpresa) "Correo Corporativo" else "Correo Electrónico",
+                    icono = Icons.Default.Email,
+                    mensajeError = errorCorreo
+                )
+
+                CampoContrasena(
+                    valor = contrasena,
+                    alCambiarValor = { vistaModelo.alCambiarContrasena(it) },
+                    etiqueta = "Contraseña"
+                )
+
+                CampoContrasena(
+                    valor = confirmarContrasena,
+                    alCambiarValor = { vistaModelo.alCambiarConfirmarContrasena(it) },
+                    etiqueta = "Confirmar Contraseña"
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                ListaRequerimientosPassword(
+                    minChar = minChar,
+                    mayus = mayus,
+                    minus = minus,
+                    num = num,
+                    esp = esp,
+                    coinciden = coinciden
+                )
+
+                BotonTerminosYCondiciones(
+                    aceptado = terminosAceptados,
+                    alCambiarAceptado = { vistaModelo.alCambiarTerminos(it) }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                BotonPrimario(
+                    texto = "Crear Cuenta",
+                    onClick = { vistaModelo.registrarUsuario(alRegistroExitoso) },
+                    habilitado = esValido,
+                    cargando = estadoUi is EstadoRegistro.Cargando
+                )
+            }
         }
     }
 }

@@ -1,12 +1,18 @@
 package duoc.pagosflex.navigation
+
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import duoc.pagosflex.ui.screens.PantallaPrincipalContenedor
 import duoc.pagosflex.ui.screens.PantallaBienvenida
+import duoc.pagosflex.ui.screens.PantallaDashboardAdmin
+import duoc.pagosflex.ui.screens.PantallaDashboardEmpresa
 import duoc.pagosflex.ui.screens.PantallaInicioCliente
+import duoc.pagosflex.ui.screens.PantallaPago
 import duoc.pagosflex.ui.screens.PantallaRegistro
-import duoc.pagosflex.ui.screens.PantallaSeleccionarPerfil
 
 @Composable
 fun AppNavegacion() {
@@ -16,76 +22,64 @@ fun AppNavegacion() {
         navController = navController,
         startDestination = Rutas.Bienvenida.ruta
     ) {
-        // 1. Pantalla Inicial Minimalista
         composable(Rutas.Bienvenida.ruta) {
             PantallaBienvenida(
-                onIniciarSesionClick = {
-                    navController.navigate(Rutas.SeleccionarPerfil.ruta)
-                }
+                alIniciarSesion = { navController.navigate(Rutas.Login.ruta) },
+                alRegistrarse = { navController.navigate(Rutas.Registro.ruta) }
             )
         }
 
-        // 2. Selección de Perfil o Crear Nuevo
-        composable(Rutas.SeleccionarPerfil.ruta) {
-            PantallaSeleccionarPerfil(
-                onVolver = {
-                    navController.popBackStack()
+        composable(Rutas.Login.ruta) {
+            PantallaInicioCliente(
+                alNavegarAlInicio = {
+                    navController.navigate(Rutas.Inicio.ruta) {
+                        popUpTo(Rutas.Bienvenida.ruta) { inclusive = true }
+                    }
                 },
-                onCrearCuentaClick = {
-                    navController.navigate(Rutas.Registro.ruta)
-                },
-                onPerfilSeleccionado = { usuario ->
-                    navController.navigate(Rutas.InicioCliente.ruta)
-                }
+                alNavegarAlRegistro = { navController.navigate(Rutas.Registro.ruta) }
             )
         }
 
-        // 3. Crear Cuenta Nueva
         composable(Rutas.Registro.ruta) {
             PantallaRegistro(
-                onVolver = {
-                    navController.popBackStack()
-                },
-                onRegistroExitoso = {
-                    navController.navigate(Rutas.InicioCliente.ruta) {
-                        popUpTo(Rutas.Bienvenida.ruta) { inclusive = true }
+                alVolverAtras = { navController.popBackStack() },
+                alRegistroExitoso = {
+                    navController.navigate(Rutas.Inicio.ruta) {
+                        popUpTo(Rutas.Registro.ruta) { inclusive = true }
                     }
                 }
             )
         }
 
-        composable(Rutas.InicioCliente.ruta) {
-            // Tomamos el usuario activo seleccionado previamente
-            val usuarioEjemplo = duoc.pagosflex.model.Usuario(
-                id = "usr_demo",
-                nombre = "Juan Pérez",
-                rut = "19.876.543-2",
-                rol = duoc.pagosflex.model.Rol.CLIENTE,
-                avatarIniciales = "JP"
-            )
-
-
-
-        }
-        composable(Rutas.InicioCliente.ruta) {
-            // Usuario demo para pruebas
-            val usuarioEjemplo = duoc.pagosflex.model.Usuario(
-                id = "usr_demo",
-                nombre = "Juan Pérez",
-                rut = "19.876.543-2",
-                rol = duoc.pagosflex.model.Rol.CLIENTE,
-                avatarIniciales = "JP"
-            )
-
-            PantallaInicioCliente(
-                usuario = usuarioEjemplo,
-                onVolver = {
-                    // Regresa a la pantalla de selección o bienvenida
-                    navController.popBackStack(Rutas.Bienvenida.ruta, inclusive = false)
+        composable(Rutas.Inicio.ruta) {
+            PantallaPrincipalContenedor(
+                alNavegarAPagar = { idCompromiso ->
+                    navController.navigate(Rutas.Pago.crearRuta(idCompromiso))
                 },
-                onIrAPagarCuenta = { /* Próxima pantalla */ },
-                onIrAServicios = { /* Próxima pantalla */ },
-                onIrADividendo = { /* Próxima pantalla */ }
+                alCerrarSesion = {
+                    navController.navigate(Rutas.Login.ruta) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable("dashboard_empresa") {
+            PantallaDashboardEmpresa()
+        }
+
+        composable("dashboard_admin") {
+            PantallaDashboardAdmin()
+        }
+
+        composable(
+            route = Rutas.Pago.ruta,
+            arguments = listOf(navArgument("idCompromiso") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val idCompromiso = backStackEntry.arguments?.getString("idCompromiso") ?: "C-101"
+            PantallaPago(
+                idCompromiso = idCompromiso,
+                alVolverAtras = { navController.popBackStack() }
             )
         }
     }
