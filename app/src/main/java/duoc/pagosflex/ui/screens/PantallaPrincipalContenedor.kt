@@ -1,6 +1,7 @@
 package duoc.pagosflex.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -28,152 +29,173 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import duoc.pagosflex.ui.components.BarraNavegacionInferior
-import duoc.pagosflex.ui.screens.PantallaHistorial
-import duoc.pagosflex.ui.screens.PantallaInicio
-import duoc.pagosflex.ui.screens.PantallaPerfil
+import coil.compose.AsyncImage
+import duoc.pagosflex.data.SesionUsuarioManager
+import duoc.pagosflex.ui.components.BarraNavegacionDinamica
+import duoc.pagosflex.viewmodel.TipoRolUsuario
 import kotlinx.coroutines.launch
 
 @Composable
 fun PantallaPrincipalContenedor(
-    alNavegarAPagar: (String) -> Unit,
-    alCerrarSesion: () -> Unit
+    rolActual: TipoRolUsuario,
+    itemSeleccionado: Int,
+    onTabSeleccionado: (Int, String) -> Unit,
+    onNavegarA: (String) -> Unit,
+    onCerrarSesion: () -> Unit,
+    contenidoPantalla: @Composable (alAbrirDrawer: () -> Unit) -> Unit
 ) {
-    var tabSeleccionado by remember { mutableStateOf(0) }
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val estadoDrawer = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val usuario by SesionUsuarioManager.usuarioActual.collectAsState()
 
     ModalNavigationDrawer(
-        drawerState = drawerState,
+        drawerState = estadoDrawer,
         drawerContent = {
             ModalDrawerSheet {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(24.dp)
-                ) {
+                Column(modifier = Modifier.fillMaxSize()) {
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.onPrimary),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .background(Color(0xFFD32F2F))
+                            .padding(20.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
-                        )
+                        Column {
+                            Box(
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.DarkGray)
+                                    .clickable {
+                                        scope.launch { estadoDrawer.close() }
+                                        onNavegarA("perfil")
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (usuario.fotoUri != null) {
+                                    AsyncImage(
+                                        model = usuario.fotoUri,
+                                        contentDescription = "Foto Perfil",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = if (usuario.nombre.isNotBlank()) usuario.nombre else "Usuario PagoFlex",
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Text(
+                                text = if (usuario.rut.isNotBlank()) "RUT: ${usuario.rut}" else "RUT: Sin especificar",
+                                color = Color.White.copy(alpha = 0.8f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+
+                            if (usuario.usuarioLogin.isNotBlank()) {
+                                Text(
+                                    text = "@${usuario.usuarioLogin}",
+                                    color = Color.White.copy(alpha = 0.9f),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
+
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Usuario PagoFlex",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.Bold
+
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = null) },
+                        label = { Text("Mis Compromisos") },
+                        selected = true,
+                        onClick = {
+                            scope.launch { estadoDrawer.close() }
+                            onNavegarA("inicio")
+                        }
                     )
-                    Text(
-                        text = "RUT: 12.345.678-9",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.History, contentDescription = null) },
+                        label = { Text("Historial de Pagos") },
+                        selected = false,
+                        onClick = {
+                            scope.launch { estadoDrawer.close() }
+                            onNavegarA("historial")
+                        }
+                    )
+
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Security, contentDescription = null) },
+                        label = { Text("Seguridad y Privacidad") },
+                        selected = false,
+                        onClick = {
+                            scope.launch { estadoDrawer.close() }
+                            onNavegarA("perfil")
+                        }
+                    )
+
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.Help, contentDescription = null) },
+                        label = { Text("Centro de Ayuda") },
+                        selected = false,
+                        onClick = {
+                            scope.launch { estadoDrawer.close() }
+                        }
+                    )
+
+                    Divider(modifier = Modifier.padding(vertical = 12.dp))
+
+                    NavigationDrawerItem(
+                        icon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = Color.Red) },
+                        label = { Text("Cerrar Sesión", color = Color.Red) },
+                        selected = false,
+                        onClick = {
+                            scope.launch { estadoDrawer.close() }
+                            onCerrarSesion()
+                        }
                     )
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = null) },
-                    label = { Text("Mis Compromisos") },
-                    selected = tabSeleccionado == 0,
-                    onClick = {
-                        tabSeleccionado = 0
-                        scope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.History, contentDescription = null) },
-                    label = { Text("Historial de Pagos") },
-                    selected = tabSeleccionado == 3,
-                    onClick = {
-                        tabSeleccionado = 3
-                        scope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.Security, contentDescription = null) },
-                    label = { Text("Seguridad y Privacidad") },
-                    selected = tabSeleccionado == 4,
-                    onClick = {
-                        tabSeleccionado = 4
-                        scope.launch { drawerState.close() }
-                    }
-                )
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.Help, contentDescription = null) },
-                    label = { Text("Centro de Ayuda") },
-                    selected = false,
-                    onClick = { scope.launch { drawerState.close() } }
-                )
-
-                Divider(modifier = Modifier.padding(vertical = 16.dp))
-
-                NavigationDrawerItem(
-                    icon = { Icon(Icons.Default.ExitToApp, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-                    label = { Text("Cerrar Sesión", color = MaterialTheme.colorScheme.error) },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        alCerrarSesion()
-                    }
-                )
             }
         }
     ) {
         Scaffold(
             bottomBar = {
-                BarraNavegacionInferior(
-                    itemSeleccionado = tabSeleccionado,
-                    onTabSeleccionado = { indice ->
-                        if (indice == 2) {
-                            alNavegarAPagar("C-101")
-                        } else {
-                            tabSeleccionado = indice
-                        }
-                    }
+                BarraNavegacionDinamica(
+                    rolActual = rolActual,
+                    itemSeleccionado = itemSeleccionado,
+                    onTabSeleccionado = onTabSeleccionado
                 )
-            },
-            containerColor = MaterialTheme.colorScheme.background
-        ) { paddingValues ->
+            }
+        ) { valoresPadding ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .padding(valoresPadding)
             ) {
-                when (tabSeleccionado) {
-                    0 -> PantallaInicio(
-                        alAbrirDrawer = { scope.launch { drawerState.open() } },
-                        alNavegarAPagar = alNavegarAPagar,
-                        alCerrarSesion = alCerrarSesion
-                    )
-                    1 -> PantallaInicio(
-                        alAbrirDrawer = { scope.launch { drawerState.open() } },
-                        alNavegarAPagar = alNavegarAPagar,
-                        alCerrarSesion = alCerrarSesion
-                    )
-                    3 -> PantallaHistorial()
-                    4 -> PantallaPerfil(alCerrarSesion = alCerrarSesion)
+                contenidoPantalla {
+                    scope.launch { estadoDrawer.open() }
                 }
             }
         }

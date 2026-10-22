@@ -33,7 +33,7 @@ import java.util.Locale
 @Composable
 fun TarjetaBalance(
     montoTotal: Double,
-    etiqueta: String = "Deuda Total Pendiente",
+    etiqueta: String = "Saldo Disponible",
     modifier: Modifier = Modifier
 ) {
     var ocultarSaldo by remember { mutableStateOf(false) }

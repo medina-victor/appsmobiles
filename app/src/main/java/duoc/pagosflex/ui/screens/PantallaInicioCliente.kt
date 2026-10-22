@@ -121,7 +121,7 @@ fun PantallaInicioCliente(
                         .height(50.dp),
                     shape = RoundedCornerShape(24.dp)
                 ) {
-                    Text(text = "Crear Cuenta de Demostración")
+                    Text(text = "Crear Cuenta ")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

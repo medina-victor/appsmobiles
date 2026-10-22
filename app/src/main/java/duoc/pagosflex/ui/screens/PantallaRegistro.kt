@@ -65,7 +65,7 @@ fun PantallaRegistro(
     val esp by vistaModelo.tieneCaracterEspecial.collectAsState()
     val coinciden by vistaModelo.contrasenasCoinciden.collectAsState()
 
-    val esEmpresa = rolSeleccionado == TipoRolUsuario.EMPRESA
+    val esEmpresa = rolSeleccionado == TipoRolUsuario.EJECUTIVO_EMPRESA
 
     Scaffold(
         topBar = {
@@ -80,7 +80,7 @@ fun PantallaRegistro(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(valoresPadding)
-                .padding(20.dp),
+                .padding(horizontal = 20.dp),
             contentAlignment = Alignment.TopCenter
         ) {
             Column(
@@ -89,6 +89,8 @@ fun PantallaRegistro(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = "Crear Cuenta PagoFlex",
                     style = MaterialTheme.typography.headlineSmall,
@@ -163,6 +165,8 @@ fun PantallaRegistro(
                     habilitado = esValido,
                     cargando = estadoUi is EstadoRegistro.Cargando
                 )
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }

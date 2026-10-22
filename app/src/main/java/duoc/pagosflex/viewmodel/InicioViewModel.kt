@@ -2,9 +2,13 @@ package duoc.pagosflex.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import duoc.pagosflex.data.SesionUsuarioManager
+import duoc.pagosflex.data.UsuarioSesion
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class CompromisoResumen(
@@ -20,11 +24,12 @@ data class CompromisoResumen(
 
 class InicioViewModel : ViewModel() {
 
-    private val _nombreUsuario = MutableStateFlow("Estudiante Duoc UC")
-    val nombreUsuario: StateFlow<String> = _nombreUsuario.asStateFlow()
-
-    private val _rutUsuario = MutableStateFlow("12.345.678-9")
-    val rutUsuario: StateFlow<String> = _rutUsuario.asStateFlow()
+    val usuarioSesion: StateFlow<UsuarioSesion> = SesionUsuarioManager.usuarioActual
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = UsuarioSesion()
+        )
 
     private val _compromisosPendientes = MutableStateFlow<List<CompromisoResumen>>(emptyList())
     val compromisosPendientes: StateFlow<List<CompromisoResumen>> = _compromisosPendientes.asStateFlow()

@@ -6,14 +6,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ReceiptLong
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -27,6 +26,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import duoc.pagosflex.navigation.Rutas
 import duoc.pagosflex.viewmodel.TipoRolUsuario
 
 data class ElementoNavegacion(
@@ -43,21 +43,20 @@ fun BarraNavegacionDinamica(
     modifier: Modifier = Modifier
 ) {
     val items = when (rolActual) {
-        TipoRolUsuario.CLIENTE -> listOf(
-            ElementoNavegacion("Inicio", Icons.Default.Home, "inicio"),
-            ElementoNavegacion("Compromisos", Icons.Default.AccountBalanceWallet, "compromisos"),
-            ElementoNavegacion("Pagar", Icons.Default.Payment, "pagar"),
+        TipoRolUsuario.USUARIO_FINAL -> listOf(
+            ElementoNavegacion("Inicio", Icons.Default.Home, Rutas.Inicio.ruta),
+            ElementoNavegacion("Pagar", Icons.Default.Payment, Rutas.Pago.crearRuta("C-101")),
             ElementoNavegacion("Historial", Icons.Default.History, "historial"),
             ElementoNavegacion("Perfil", Icons.Default.Person, "perfil")
         )
-        TipoRolUsuario.EMPRESA -> listOf(
-            ElementoNavegacion("Dashboard", Icons.Default.Business, "dashboard_empresa"),
-            ElementoNavegacion("Cobros", Icons.Default.ReceiptLong, "cobros_empresa"),
+        TipoRolUsuario.EJECUTIVO_EMPRESA -> listOf(
+            ElementoNavegacion("Cobranza", Icons.Default.Business, Rutas.DashboardEmpresa.ruta),
+            ElementoNavegacion("Cobros", Icons.Default.ReceiptLong, Rutas.DashboardEmpresa.ruta),
             ElementoNavegacion("Perfil", Icons.Default.Person, "perfil")
         )
-        TipoRolUsuario.ADMINISTRADOR -> listOf(
-            ElementoNavegacion("Métricas", Icons.Default.Assessment, "dashboard_admin"),
-            ElementoNavegacion("Seguridad", Icons.Default.Security, "auditoria_admin"),
+        TipoRolUsuario.AGENTE_PAGOFLEX -> listOf(
+            ElementoNavegacion("Soporte", Icons.Default.SupportAgent, Rutas.PanelAgente.ruta),
+            ElementoNavegacion("Casos", Icons.Default.AccountBalanceWallet, Rutas.PanelAgente.ruta),
             ElementoNavegacion("Perfil", Icons.Default.Person, "perfil")
         )
     }

@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 
 class RegistroViewModel : ViewModel() {
 
-    private val _estadoUi = MutableStateFlow<EstadoRegistro>(EstadoRegistro.Inactivo)
+    private val _estadoUi = MutableStateFlow<EstadoRegistro>(EstadoRegistro.Idle)
     val estadoUi: StateFlow<EstadoRegistro> = _estadoUi.asStateFlow()
 
     var nombre = MutableStateFlow("")
@@ -22,7 +22,7 @@ class RegistroViewModel : ViewModel() {
     var correo = MutableStateFlow("")
     var contrasena = MutableStateFlow("")
     var confirmarContrasena = MutableStateFlow("")
-    var rolSeleccionado = MutableStateFlow(TipoRolUsuario.CLIENTE)
+    var rolSeleccionado = MutableStateFlow(TipoRolUsuario.USUARIO_FINAL)
 
     var errorNombre = MutableStateFlow<String?>(null)
     var errorRut = MutableStateFlow<String?>(null)
@@ -39,7 +39,8 @@ class RegistroViewModel : ViewModel() {
     val formularioValido: StateFlow<Boolean> = combine(
         nombre, rut, correo, contrasena, confirmarContrasena,
         terminosAceptados, tieneMinimoCaracteres, tieneMayuscula,
-        tieneMinuscula, tieneNumero, tieneCaracterEspecial, contrasenasCoinciden
+        tieneMinuscula, tieneNumero, tieneCaracterEspecial, contrasenasCoinciden,
+        errorNombre, errorRut, errorCorreo
     ) { params ->
         val nom = params[0] as String
         val r = params[1] as String
@@ -51,9 +52,13 @@ class RegistroViewModel : ViewModel() {
         val num = params[9] as Boolean
         val esp = params[10] as Boolean
         val coinc = params[11] as Boolean
+        val errNom = params[12] as String?
+        val errRut = params[13] as String?
+        val errCor = params[14] as String?
 
-        nom.isNotBlank() && r.length >= 8 && cor.isNotBlank() &&
-                android.util.Patterns.EMAIL_ADDRESS.matcher(cor).matches() &&
+        nom.isNotBlank() && errNom == null &&
+                r.isNotBlank() && errRut == null &&
+                cor.isNotBlank() && errCor == null &&
                 term && minChar && mayus && minus && num && esp && coinc
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -61,32 +66,77 @@ class RegistroViewModel : ViewModel() {
         rolSeleccionado.value = nuevoRol
         rut.value = ""
         errorRut.value = null
+        alCambiarNombre(nombre.value)
     }
 
     fun alCambiarNombre(nuevoNombre: String) {
         nombre.value = nuevoNombre
+        val contieneNumeros = nuevoNombre.any { it.isDigit() }
+        val soloLetrasYEspacios = nuevoNombre.all { it.isLetter() || it.isWhitespace() }
+
         when {
-            nuevoNombre.isBlank() -> errorNombre.value = "Campo obligatorio"
-            else -> errorNombre.value = null
+            nuevoNombre.isBlank() -> {
+                errorNombre.value = "El nombre es obligatorio"
+            }
+            contieneNumeros -> {
+                errorNombre.value = "El nombre no puede contener números"
+            }
+            !soloLetrasYEspacios -> {
+                errorNombre.value = "El nombre solo debe contener letras"
+            }
+            nuevoNombre.trim().length < 15 -> {
+                errorNombre.value = "Debe tener al menos 15 caracteres (llevas ${nuevoNombre.trim().length})"
+            }
+            else -> {
+                errorNombre.value = null
+            }
         }
     }
 
     fun alCambiarRut(nuevoRut: String) {
-        rut.value = nuevoRut
+        val rutFormateado = formatearRut(nuevoRut)
+        rut.value = rutFormateado
+        val esEmpresa = rolSeleccionado.value == TipoRolUsuario.EJECUTIVO_EMPRESA
+
         when {
-            nuevoRut.isBlank() -> errorRut.value = "El RUT es obligatorio"
-            nuevoRut.length < 8 -> errorRut.value = "Ingrese un RUT válido"
-            else -> errorRut.value = null
+            rutFormateado.isBlank() -> {
+                errorRut.value = "El RUT es obligatorio"
+            }
+            !validarRutChileno(rutFormateado) -> {
+                errorRut.value = "RUT o dígito verificador inválido"
+            }
+            else -> {
+                val numeroRut = rutFormateado.replace(".", "").split("-")[0].toIntOrNull() ?: 0
+                if (esEmpresa && numeroRut < 50000000) {
+                    errorRut.value = "Debe ingresar RUT de Empresa (Persona Jurídica)"
+                } else if (!esEmpresa && numeroRut >= 50000000) {
+                    errorRut.value = "El RUT pertenece a Empresa, use el rol adecuado"
+                } else {
+                    errorRut.value = null
+                }
+            }
         }
     }
 
     fun alCambiarCorreo(nuevoCorreo: String) {
         correo.value = nuevoCorreo
         val esValido = android.util.Patterns.EMAIL_ADDRESS.matcher(nuevoCorreo).matches()
+        val dominiosProhibidos = listOf("yopmail.com", "mailinator.com", "10minutemail.com", "trashmail.com")
+        val dominio = nuevoCorreo.substringAfter("@", "").lowercase()
+
         when {
-            nuevoCorreo.isBlank() -> errorCorreo.value = "El correo es obligatorio"
-            !esValido -> errorCorreo.value = "Ingrese un correo válido"
-            else -> errorCorreo.value = null
+            nuevoCorreo.isBlank() -> {
+                errorCorreo.value = "El correo es obligatorio"
+            }
+            !esValido -> {
+                errorCorreo.value = "Ingrese un correo válido"
+            }
+            dominiosProhibidos.contains(dominio) -> {
+                errorCorreo.value = "No se permiten correos temporales"
+            }
+            else -> {
+                errorCorreo.value = null
+            }
         }
     }
 
@@ -117,7 +167,8 @@ class RegistroViewModel : ViewModel() {
             delay(1200)
 
             SesionUsuarioManager.iniciarSesion(
-                nombre = nombre.value,
+                nombre = nombre.value.trim(),
+                rut = rut.value,
                 correo = correo.value,
                 rol = rolSeleccionado.value
             )
@@ -125,5 +176,40 @@ class RegistroViewModel : ViewModel() {
             _estadoUi.value = EstadoRegistro.Exito
             alExito()
         }
+    }
+
+    private fun formatearRut(rut: String): String {
+        val limpio = rut.replace(".", "").replace("-", "").uppercase()
+        if (limpio.isEmpty()) return ""
+        return if (limpio.length > 1) {
+            val cuerpo = limpio.dropLast(1)
+            val dv = limpio.last()
+            val cuerpoFormateado = cuerpo.reversed().chunked(3).joinToString(".").reversed()
+            "$cuerpoFormateado-$dv"
+        } else {
+            limpio
+        }
+    }
+
+    private fun validarRutChileno(rut: String): Boolean {
+        val limpio = rut.replace(".", "").replace("-", "").uppercase()
+        if (limpio.length < 8) return false
+        val cuerpo = limpio.dropLast(1)
+        val dvIngresado = limpio.last()
+
+        var suma = 0
+        var multiplicador = 2
+        for (i in cuerpo.reversed()) {
+            if (!i.isDigit()) return false
+            suma += (i.toString().toInt()) * multiplicador
+            multiplicador = if (multiplicador == 7) 2 else multiplicador + 1
+        }
+        val resto = suma % 11
+        val dvEsperado = when (val resultado = 11 - resto) {
+            11 -> '0'
+            10 -> 'K'
+            else -> resultado.toString()[0]
+        }
+        return dvIngresado == dvEsperado
     }
 }
