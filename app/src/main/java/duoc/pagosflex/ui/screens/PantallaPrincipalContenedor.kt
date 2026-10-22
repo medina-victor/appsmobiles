@@ -152,7 +152,7 @@ fun PantallaPrincipalContenedor(
                         selected = false,
                         onClick = {
                             scope.launch { estadoDrawer.close() }
-                            onNavegarA("perfil")
+                            onNavegarA("terminos")
                         }
                     )
 
@@ -162,6 +162,7 @@ fun PantallaPrincipalContenedor(
                         selected = false,
                         onClick = {
                             scope.launch { estadoDrawer.close() }
+                            onNavegarA("ayuda")
                         }
                     )
 

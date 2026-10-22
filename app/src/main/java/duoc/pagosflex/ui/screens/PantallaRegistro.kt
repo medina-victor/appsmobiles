@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +51,8 @@ fun PantallaRegistro(
     val correo by vistaModelo.correo.collectAsState()
     val contrasena by vistaModelo.contrasena.collectAsState()
     val confirmarContrasena by vistaModelo.confirmarContrasena.collectAsState()
+    val pin by vistaModelo.pinSeguridad.collectAsState()
+    val confirmarPin by vistaModelo.confirmarPin.collectAsState()
     val rolSeleccionado by vistaModelo.rolSeleccionado.collectAsState()
     val terminosAceptados by vistaModelo.terminosAceptados.collectAsState()
     val esValido by vistaModelo.formularioValido.collectAsState()
@@ -64,6 +67,7 @@ fun PantallaRegistro(
     val num by vistaModelo.tieneNumero.collectAsState()
     val esp by vistaModelo.tieneCaracterEspecial.collectAsState()
     val coinciden by vistaModelo.contrasenasCoinciden.collectAsState()
+    val pinesCoinciden by vistaModelo.pinesCoinciden.collectAsState()
 
     val esEmpresa = rolSeleccionado == TipoRolUsuario.EJECUTIVO_EMPRESA
 
@@ -139,6 +143,21 @@ fun PantallaRegistro(
                     valor = confirmarContrasena,
                     alCambiarValor = { vistaModelo.alCambiarConfirmarContrasena(it) },
                     etiqueta = "Confirmar Contraseña"
+                )
+
+                CampoDeTexto(
+                    valor = pin,
+                    alCambiarValor = { vistaModelo.alCambiarPin(it) },
+                    etiqueta = "PIN de Seguridad (4 dígitos)",
+                    icono = Icons.Default.Lock
+                )
+
+                CampoDeTexto(
+                    valor = confirmarPin,
+                    alCambiarValor = { vistaModelo.alCambiarConfirmarPin(it) },
+                    etiqueta = "Confirmar PIN de Seguridad (4 dígitos)",
+                    icono = Icons.Default.Lock,
+                    mensajeError = if (confirmarPin.isNotEmpty() && !pinesCoinciden) "Los PIN no coinciden" else null
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))

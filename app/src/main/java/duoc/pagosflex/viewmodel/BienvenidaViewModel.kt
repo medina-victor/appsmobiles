@@ -14,7 +14,7 @@ data class BienvenidaUiState(
 
 class BienvenidaViewModel : ViewModel() {
 
-    // Estado interno modificable
+
     private val _uiState = MutableStateFlow(BienvenidaUiState())
     val uiState: StateFlow<BienvenidaUiState> = _uiState.asStateFlow()
 

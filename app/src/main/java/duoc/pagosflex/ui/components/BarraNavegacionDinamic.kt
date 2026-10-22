@@ -2,7 +2,7 @@ package duoc.pagosflex.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
@@ -62,7 +62,7 @@ fun BarraNavegacionDinamica(
     }
 
     NavigationBar(
-        modifier = modifier.height(64.dp),
+        modifier = modifier.navigationBarsPadding(),
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 8.dp
     ) {
