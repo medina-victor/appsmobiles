@@ -1,8 +1,11 @@
 package duoc.pagosflex.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import duoc.pagosflex.data.SesionUsuarioManager
+import duoc.pagosflex.data.UsuarioDbHelper
+import duoc.pagosflex.model.Rol
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -12,7 +15,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class RegistroViewModel : ViewModel() {
+class RegistroViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val dbHelper = UsuarioDbHelper(application)
 
     private val _estadoUi = MutableStateFlow<EstadoRegistro>(EstadoRegistro.Idle)
     val estadoUi: StateFlow<EstadoRegistro> = _estadoUi.asStateFlow()
@@ -22,6 +27,8 @@ class RegistroViewModel : ViewModel() {
     var correo = MutableStateFlow("")
     var contrasena = MutableStateFlow("")
     var confirmarContrasena = MutableStateFlow("")
+    var pinSeguridad = MutableStateFlow("")
+    var confirmarPin = MutableStateFlow("")
     var rolSeleccionado = MutableStateFlow(TipoRolUsuario.USUARIO_FINAL)
 
     var errorNombre = MutableStateFlow<String?>(null)
@@ -34,31 +41,36 @@ class RegistroViewModel : ViewModel() {
     var tieneNumero = MutableStateFlow(false)
     var tieneCaracterEspecial = MutableStateFlow(false)
     var contrasenasCoinciden = MutableStateFlow(false)
+    var pinesCoinciden = MutableStateFlow(false)
     var terminosAceptados = MutableStateFlow(false)
 
     val formularioValido: StateFlow<Boolean> = combine(
-        nombre, rut, correo, contrasena, confirmarContrasena,
+        nombre, rut, correo, contrasena, confirmarContrasena, pinSeguridad, confirmarPin,
         terminosAceptados, tieneMinimoCaracteres, tieneMayuscula,
-        tieneMinuscula, tieneNumero, tieneCaracterEspecial, contrasenasCoinciden,
+        tieneMinuscula, tieneNumero, tieneCaracterEspecial, contrasenasCoinciden, pinesCoinciden,
         errorNombre, errorRut, errorCorreo
     ) { params ->
         val nom = params[0] as String
         val r = params[1] as String
         val cor = params[2] as String
-        val term = params[5] as Boolean
-        val minChar = params[6] as Boolean
-        val mayus = params[7] as Boolean
-        val minus = params[8] as Boolean
-        val num = params[9] as Boolean
-        val esp = params[10] as Boolean
-        val coinc = params[11] as Boolean
-        val errNom = params[12] as String?
-        val errRut = params[13] as String?
-        val errCor = params[14] as String?
+        val pin = params[5] as String
+        val cPin = params[6] as String
+        val term = params[7] as Boolean
+        val minChar = params[8] as Boolean
+        val mayus = params[9] as Boolean
+        val minus = params[10] as Boolean
+        val num = params[11] as Boolean
+        val esp = params[12] as Boolean
+        val coinc = params[13] as Boolean
+        val pCoinc = params[14] as Boolean
+        val errNom = params[15] as String?
+        val errRut = params[16] as String?
+        val errCor = params[17] as String?
 
         nom.isNotBlank() && errNom == null &&
                 r.isNotBlank() && errRut == null &&
                 cor.isNotBlank() && errCor == null &&
+                pin.length == 4 && cPin.length == 4 && pCoinc &&
                 term && minChar && mayus && minus && num && esp && coinc
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -71,21 +83,17 @@ class RegistroViewModel : ViewModel() {
 
     fun alCambiarNombre(nuevoNombre: String) {
         nombre.value = nuevoNombre
-        val contieneNumeros = nuevoNombre.any { it.isDigit() }
-        val soloLetrasYEspacios = nuevoNombre.all { it.isLetter() || it.isWhitespace() }
+        val esEmpresa = rolSeleccionado.value == TipoRolUsuario.EJECUTIVO_EMPRESA
 
         when {
             nuevoNombre.isBlank() -> {
-                errorNombre.value = "El nombre es obligatorio"
+                errorNombre.value = "Este campo es obligatorio"
             }
-            contieneNumeros -> {
-                errorNombre.value = "El nombre no puede contener números"
+            !esEmpresa && nuevoNombre.any { it.isDigit() } -> {
+                errorNombre.value = "El nombre del usuario no puede contener números"
             }
-            !soloLetrasYEspacios -> {
-                errorNombre.value = "El nombre solo debe contener letras"
-            }
-            nuevoNombre.trim().length < 15 -> {
-                errorNombre.value = "Debe tener al menos 15 caracteres (llevas ${nuevoNombre.trim().length})"
+            nuevoNombre.trim().length < 3 -> {
+                errorNombre.value = "Debe tener al menos 3 caracteres"
             }
             else -> {
                 errorNombre.value = null
@@ -94,26 +102,20 @@ class RegistroViewModel : ViewModel() {
     }
 
     fun alCambiarRut(nuevoRut: String) {
-        val rutFormateado = formatearRut(nuevoRut)
-        rut.value = rutFormateado
+        val limpio = nuevoRut.replace(Regex("[^0-9kK]"), "").uppercase()
+        rut.value = limpio
         val esEmpresa = rolSeleccionado.value == TipoRolUsuario.EJECUTIVO_EMPRESA
+        val rutConFormato = formatearRut(limpio)
 
         when {
-            rutFormateado.isBlank() -> {
+            limpio.isBlank() -> {
                 errorRut.value = "El RUT es obligatorio"
             }
-            !validarRutChileno(rutFormateado) -> {
+            !esEmpresa && !validarRutChileno(rutConFormato) -> {
                 errorRut.value = "RUT o dígito verificador inválido"
             }
             else -> {
-                val numeroRut = rutFormateado.replace(".", "").split("-")[0].toIntOrNull() ?: 0
-                if (esEmpresa && numeroRut < 50000000) {
-                    errorRut.value = "Debe ingresar RUT de Empresa (Persona Jurídica)"
-                } else if (!esEmpresa && numeroRut >= 50000000) {
-                    errorRut.value = "El RUT pertenece a Empresa, use el rol adecuado"
-                } else {
-                    errorRut.value = null
-                }
+                errorRut.value = null
             }
         }
     }
@@ -155,6 +157,20 @@ class RegistroViewModel : ViewModel() {
         contrasenasCoinciden.value = nuevaConfirmacion.isNotEmpty() && nuevaConfirmacion == contrasena.value
     }
 
+    fun alCambiarPin(nuevoPin: String) {
+        if (nuevoPin.length <= 4 && nuevoPin.all { it.isDigit() }) {
+            pinSeguridad.value = nuevoPin
+            pinesCoinciden.value = nuevoPin.isNotEmpty() && nuevoPin == confirmarPin.value
+        }
+    }
+
+    fun alCambiarConfirmarPin(nuevoPin: String) {
+        if (nuevoPin.length <= 4 && nuevoPin.all { it.isDigit() }) {
+            confirmarPin.value = nuevoPin
+            pinesCoinciden.value = nuevoPin.isNotEmpty() && nuevoPin == pinSeguridad.value
+        }
+    }
+
     fun alCambiarTerminos(aceptado: Boolean) {
         terminosAceptados.value = aceptado
     }
@@ -164,22 +180,44 @@ class RegistroViewModel : ViewModel() {
 
         viewModelScope.launch {
             _estadoUi.value = EstadoRegistro.Cargando
-            delay(1200)
+            delay(1000)
 
-            SesionUsuarioManager.iniciarSesion(
+            val rolDb = when (rolSeleccionado.value) {
+                TipoRolUsuario.USUARIO_FINAL -> Rol.CLIENTE
+                TipoRolUsuario.AGENTE_PAGOFLEX -> Rol.AGENTE
+                TipoRolUsuario.EJECUTIVO_EMPRESA -> Rol.EJECUTIVO
+            }
+
+            val guardadoExitoso = dbHelper.registrarUsuario(
                 nombre = nombre.value.trim(),
-                rut = rut.value,
-                correo = correo.value,
-                rol = rolSeleccionado.value
+                rut = formatearRut(rut.value),
+                correo = correo.value.trim(),
+                contrasena = contrasena.value,
+                pin = pinSeguridad.value,
+                rol = rolDb,
+                codigo = if (rolSeleccionado.value == TipoRolUsuario.USUARIO_FINAL) "UF-REG" else "EMP-REG",
+                detalle = rolSeleccionado.value.titulo,
+                avatar = nombre.value.take(2).uppercase()
             )
 
-            _estadoUi.value = EstadoRegistro.Exito
-            alExito()
+            if (guardadoExitoso) {
+                SesionUsuarioManager.iniciarSesion(
+                    nombre = nombre.value.trim(),
+                    rut = formatearRut(rut.value),
+                    correo = correo.value.trim(),
+                    rol = rolSeleccionado.value,
+                    usuarioLogin = correo.value.trim()
+                )
+                _estadoUi.value = EstadoRegistro.Exito
+                alExito()
+            } else {
+                _estadoUi.value = EstadoRegistro.Error("No se pudo guardar el registro en la base de datos.")
+            }
         }
     }
 
     private fun formatearRut(rut: String): String {
-        val limpio = rut.replace(".", "").replace("-", "").uppercase()
+        val limpio = rut.replace(Regex("[^0-9kK]"), "").uppercase()
         if (limpio.isEmpty()) return ""
         return if (limpio.length > 1) {
             val cuerpo = limpio.dropLast(1)
@@ -205,7 +243,8 @@ class RegistroViewModel : ViewModel() {
             multiplicador = if (multiplicador == 7) 2 else multiplicador + 1
         }
         val resto = suma % 11
-        val dvEsperado = when (val resultado = 11 - resto) {
+        val resultado = 11 - resto
+        val dvEsperado = when (resultado) {
             11 -> '0'
             10 -> 'K'
             else -> resultado.toString()[0]

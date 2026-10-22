@@ -1,6 +1,8 @@
 package duoc.pagosflex.ui.screens
 
+import android.Manifest
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -20,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Lock
@@ -32,6 +35,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -40,6 +44,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,12 +62,14 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import duoc.pagosflex.ui.components.BotonPrimario
+import duoc.pagosflex.util.NotificacionHelper
 import duoc.pagosflex.viewmodel.PerfilViewModel
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaPerfil(
+    alVolverAtras: () -> Unit,
     alCerrarSesion: () -> Unit,
     vistaModelo: PerfilViewModel = viewModel()
 ) {
@@ -73,6 +80,24 @@ fun PantallaPerfil(
     var autenticacionBiometrica by remember { mutableStateOf(false) }
     var nuevoAlias by remember { mutableStateOf(usuario.usuarioLogin) }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val permisosLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ ->
+    }
+
+    LaunchedEffect(Unit) {
+        val listaPermisos = mutableListOf(
+            Manifest.permission.CAMERA
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            listaPermisos.add(Manifest.permission.READ_MEDIA_IMAGES)
+            listaPermisos.add(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            listaPermisos.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        permisosLauncher.launch(listaPermisos.toTypedArray())
+    }
 
     val galeriaLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -101,7 +126,14 @@ fun PantallaPerfil(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Ajustes y Perfil", fontWeight = FontWeight.Bold) })
+            TopAppBar(
+                title = { Text("Ajustes y Perfil", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = alVolverAtras) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                }
+            )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { valoresPadding ->
@@ -208,7 +240,7 @@ fun PantallaPerfil(
             }
 
             Text(
-                text = "Configuración",
+                text = "Configuración y Notificaciones",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Start)
@@ -228,7 +260,7 @@ fun PantallaPerfil(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Notifications, contentDescription = null)
                             Spacer(modifier = Modifier.padding(start = 8.dp))
-                            Text("Notificaciones de pago")
+                            Text("Notificaciones push de vencimiento")
                         }
                         Switch(checked = notificacionesActivadas, onCheckedChange = { notificacionesActivadas = it })
                     }
@@ -244,6 +276,24 @@ fun PantallaPerfil(
                             Text("Autenticación biométrica")
                         }
                         Switch(checked = autenticacionBiometrica, onCheckedChange = { autenticacionBiometrica = it })
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    OutlinedButton(
+                        onClick = {
+                            NotificacionHelper.mostrarNotificacionRecordatorio(
+                                contexto,
+                                "Pago Próximo a Vencer",
+                                "Tienes una cuota de Duoc UC por $145.000 que vence mañana."
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.Notifications, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Probar Notificación Push")
                     }
                 }
             }

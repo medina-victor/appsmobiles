@@ -11,45 +11,50 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import duoc.pagosflex.data.CompromisoRepositorio
 import duoc.pagosflex.ui.theme.EstadoExito
 import java.text.NumberFormat
 import java.util.Locale
 
-data class RegistroPago(
-    val idTransaccion: String,
-    val institucion: String,
-    val fecha: String,
-    val monto: Double
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaHistorial() {
-    val historial = listOf(
-        RegistroPago("TX-882193", "Universidad Duoc UC", "05/10/2026", 145000.0),
-        RegistroPago("TX-771239", "Servicios de Agua", "12/09/2026", 24500.0),
-        RegistroPago("TX-551200", "Autopistas Urbanas", "01/09/2026", 18900.0)
-    )
-
+fun PantallaHistorial(
+    alVolverAtras: () -> Unit
+) {
+    val historial by CompromisoRepositorio.historial.collectAsState()
     val formatoMoneda = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Historial de Pagos", fontWeight = FontWeight.Bold) })
+            TopAppBar(
+                title = { Text("Historial de Pagos", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = alVolverAtras) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
+                    }
+                }
+            )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { valoresPadding ->
@@ -74,7 +79,10 @@ fun PantallaHistorial() {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
@@ -88,12 +96,12 @@ fun PantallaHistorial() {
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Comprobante: ${pago.idTransaccion}",
+                                    text = pago.concepto,
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = pago.fecha,
+                                    text = "N°: ${pago.idTransaccion} • ${pago.fecha}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

@@ -1,9 +1,11 @@
 package duoc.pagosflex.viewmodel
 
-
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import duoc.pagosflex.data.SesionUsuarioManager
+import duoc.pagosflex.data.UsuarioDbHelper
+import duoc.pagosflex.model.Rol
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,7 +22,9 @@ sealed class EstadoLogin {
     data class Error(val mensaje: String) : EstadoLogin()
 }
 
-class LoginViewModel : ViewModel() {
+class LoginViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val dbHelper = UsuarioDbHelper(application)
 
     private val _estadoUi = MutableStateFlow<EstadoLogin>(EstadoLogin.Idle)
     val estadoUi: StateFlow<EstadoLogin> = _estadoUi.asStateFlow()
@@ -32,11 +36,11 @@ class LoginViewModel : ViewModel() {
     val formularioValido: StateFlow<Boolean> = combine(
         usuarioOCorreo, contrasena, _estadoUi
     ) { u, p, estado ->
-        u.isNotBlank() && p.isNotBlank() && p.length >= 6 && estado !is EstadoLogin.Cargando
+        u.isNotBlank() && p.isNotBlank() && estado !is EstadoLogin.Cargando
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun alCambiarUsuario(nuevoUsuario: String) {
-        usuarioOCorreo.value = nuevoUsuario
+        usuarioOCorreo.value = nuevoUsuario.trim()
         errorCredenciales.value = null
     }
 
@@ -50,24 +54,36 @@ class LoginViewModel : ViewModel() {
         val p = contrasena.value.trim()
 
         if (u.isBlank() || p.isBlank()) {
-            errorCredenciales.value = "Ingresa tu usuario/correo/RUT y contraseña"
+            errorCredenciales.value = "Ingresa tu usuario, correo o RUT y contraseña"
             return
         }
 
         viewModelScope.launch {
             _estadoUi.value = EstadoLogin.Cargando
-            delay(1000)
+            delay(800)
 
-            SesionUsuarioManager.iniciarSesion(
-                nombre = if (u.contains("@")) u.substringBefore("@") else u,
-                correo = if (u.contains("@")) u else "$u@pagoflex.cl",
-                rut = if (!u.contains("@")) u else "12.345.678-9",
-                rol = TipoRolUsuario.USUARIO_FINAL,
-                usuarioLogin = u
-            )
+            val usuarioEncontrado = dbHelper.verificarCredenciales(u, p)
+            if (usuarioEncontrado != null) {
+                val tipoRol = when (usuarioEncontrado.rol) {
+                    Rol.CLIENTE -> TipoRolUsuario.USUARIO_FINAL
+                    Rol.AGENTE -> TipoRolUsuario.AGENTE_PAGOFLEX
+                    Rol.EJECUTIVO -> TipoRolUsuario.EJECUTIVO_EMPRESA
+                }
 
-            _estadoUi.value = EstadoLogin.Exito
-            alExito()
+                SesionUsuarioManager.iniciarSesion(
+                    nombre = usuarioEncontrado.nombre,
+                    rut = usuarioEncontrado.rut,
+                    correo = usuarioEncontrado.codigo,
+                    rol = tipoRol,
+                    usuarioLogin = u
+                )
+
+                _estadoUi.value = EstadoLogin.Exito
+                alExito()
+            } else {
+                _estadoUi.value = EstadoLogin.Error("Credenciales incorrectas")
+                errorCredenciales.value = "Credenciales incorrectas. Verifique su usuario/RUT y contraseña."
+            }
         }
     }
 }

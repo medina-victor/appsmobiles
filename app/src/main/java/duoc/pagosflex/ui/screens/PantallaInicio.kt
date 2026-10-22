@@ -1,7 +1,5 @@
 package duoc.pagosflex.ui.screens
 
-
-
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,12 +16,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Payment
-import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -59,10 +57,14 @@ import duoc.pagosflex.viewmodel.InicioViewModel
 fun PantallaInicio(
     alAbrirDrawer: () -> Unit = {},
     alNavegarAPagar: (String) -> Unit,
+    alNavegarAAgregar: () -> Unit,
+    alNavegarAHistorial: () -> Unit,
+    alNavegarAAyuda: () -> Unit,
     alCerrarSesion: () -> Unit,
     vistaModelo: InicioViewModel = viewModel()
 ) {
     val usuario by vistaModelo.usuarioSesion.collectAsState()
+    val saldoCuenta by vistaModelo.saldoCuenta.collectAsState()
     val totalPendiente by vistaModelo.totalPendiente.collectAsState()
     val compromisos by vistaModelo.compromisosPendientes.collectAsState()
 
@@ -106,7 +108,38 @@ fun PantallaInicio(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item {
-                TarjetaBalance(montoTotal = totalPendiente)
+                TarjetaBalance(
+                    montoTotal = saldoCuenta,
+                    etiqueta = "Saldo Disponible en Cuenta"
+                )
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Total Compromisos Pendientes:",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = totalPendiente.aMonedaCLP(),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
 
             item {
@@ -120,21 +153,21 @@ fun PantallaInicio(
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         item {
                             AssistChip(
-                                onClick = { },
-                                label = { Text("Escanear QR") },
-                                leadingIcon = { Icon(Icons.Default.QrCode, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                                onClick = alNavegarAAgregar,
+                                label = { Text("Agregar Cuenta") },
+                                leadingIcon = { Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp)) }
                             )
                         }
                         item {
                             AssistChip(
-                                onClick = { },
-                                label = { Text("Descargar Estado") },
+                                onClick = alNavegarAHistorial,
+                                label = { Text("Ver Movimientos") },
                                 leadingIcon = { Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp)) }
                             )
                         }
                         item {
                             AssistChip(
-                                onClick = { },
+                                onClick = alNavegarAAyuda,
                                 label = { Text("Ayuda") },
                                 leadingIcon = { Icon(Icons.Default.HelpOutline, contentDescription = null, modifier = Modifier.size(16.dp)) }
                             )

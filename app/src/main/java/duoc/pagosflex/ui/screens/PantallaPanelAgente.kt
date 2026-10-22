@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.Check
@@ -27,14 +29,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import duoc.pagosflex.data.CompromisoRepositorio
 import duoc.pagosflex.ui.components.BadgeEstado
 import duoc.pagosflex.ui.components.TarjetaMetrica
+import duoc.pagosflex.util.aMonedaCLP
 
 data class TicketSoporte(
     val id: String,
@@ -46,17 +52,18 @@ data class TicketSoporte(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaPanelAgente() {
+    val compromisos by CompromisoRepositorio.compromisos.collectAsState()
     val tickets = remember {
         mutableStateListOf(
-            TicketSoporte("TK-101", "Juan Pérez", "Error al procesar transferencia WebPay", "Pendiente"),
+            TicketSoporte("TK-101", "Juan Pérez", "Error al procesar transferencia", "Pendiente"),
             TicketSoporte("TK-102", "María González", "Comprobante no emitido en PDF", "En Revisión"),
-            TicketSoporte("TK-103", "Carlos Rojas", "Solicitud de cambio de fecha vencimiento", "Resuelto")
+            TicketSoporte("TK-103", "Carlos Rojas", "Solicitud cambio de fecha vencimiento", "Resuelto")
         )
     }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Centro de Soporte Agente PagoFlex", fontWeight = FontWeight.Bold) })
+            TopAppBar(title = { Text("Panel de Control Agente PagoFlex", fontWeight = FontWeight.Bold) })
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { valoresPadding ->
@@ -64,7 +71,8 @@ fun PantallaPanelAgente() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(valoresPadding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .verticalScrollIfNeeded(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -75,20 +83,54 @@ fun PantallaPanelAgente() {
                     modifier = Modifier.weight(1f)
                 )
                 TarjetaMetrica(
-                    titulo = "Casos Resueltos",
-                    valor = tickets.count { it.estado == "Resuelto" }.toString(),
+                    titulo = "Cuentas Registradas",
+                    valor = compromisos.size.toString(),
                     icono = Icons.Default.AssignmentTurnedIn,
                     modifier = Modifier.weight(1f)
                 )
             }
 
             Text(
-                text = "Bandeja de Problemas de Usuarios",
+                text = "Cuentas y Solicitudes de Clientes",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(
+                modifier = Modifier.height(180.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(compromisos) { comp ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(comp.institucion, fontWeight = FontWeight.Bold)
+                                Text(comp.concepto, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text(comp.monto.aMonedaCLP(), fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
+
+            Text(
+                text = "Bandeja de Soporte de Usuarios",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            LazyColumn(
+                modifier = Modifier.height(220.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
                 items(tickets) { item ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -108,7 +150,7 @@ fun PantallaPanelAgente() {
                             Text("Usuario: ${item.usuario} • ID Ticket: ${item.id}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                             if (item.estado != "Resuelto") {
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     if (item.estado == "Pendiente") {
                                         Button(
@@ -141,3 +183,7 @@ fun PantallaPanelAgente() {
     }
 }
 
+@Composable
+fun Modifier.verticalScrollIfNeeded(): Modifier {
+    return this.verticalScroll(rememberScrollState())
+}
