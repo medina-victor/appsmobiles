@@ -1,5 +1,6 @@
 package duoc.pagosflex.navigation
 
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -7,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -30,12 +32,18 @@ import duoc.pagosflex.viewmodel.TipoRolUsuario
 @Composable
 fun AppNavegacion() {
     val navController = rememberNavController()
+    val contexto = LocalContext.current
     val usuarioSesion by SesionUsuarioManager.usuarioActual.collectAsState()
     var itemNavegacionSeleccionado by remember { mutableIntStateOf(0) }
 
+    val sesionActivaInicial = remember {
+        val prefs = contexto.getSharedPreferences("pagoflex_sesion_prefs", Context.MODE_PRIVATE)
+        prefs.getBoolean("es_activa", false)
+    }
+
     NavHost(
         navController = navController,
-        startDestination = if (usuarioSesion.esSesionActiva) "pin" else "bienvenida"
+        startDestination = if (sesionActivaInicial || usuarioSesion.esSesionActiva) "pin" else "bienvenida"
     ) {
         composable("bienvenida") {
             PantallaBienvenida(
@@ -83,9 +91,9 @@ fun AppNavegacion() {
         }
 
         composable("pin") {
-            val pinDemo = if (usuarioSesion.nombre.contains("Camila", true)) "1111" else "1234"
+            val pinCorrecto = usuarioSesion.pin.ifBlank { "1111" }
             PantallaPin(
-                pinCorrecto = pinDemo,
+                pinCorrecto = pinCorrecto,
                 alPinCorrecto = {
                     navController.navigate("contenedor_principal") {
                         popUpTo("pin") { inclusive = true }
@@ -126,12 +134,14 @@ fun AppNavegacion() {
                 },
                 onNavegarA = { ruta ->
                     if (navController.currentDestination?.route != ruta) {
-                        navController.navigate(ruta)
+                        navController.navigate(ruta) {
+                            launchSingleTop = true
+                        }
                     }
                 },
                 onCerrarSesion = {
                     SesionUsuarioManager.cerrarSesion()
-                    navController.navigate("login") {
+                    navController.navigate("bienvenida") {
                         popUpTo(0) { inclusive = true }
                     }
                 }
@@ -154,7 +164,7 @@ fun AppNavegacion() {
                             },
                             alCerrarSesion = {
                                 SesionUsuarioManager.cerrarSesion()
-                                navController.navigate("login") {
+                                navController.navigate("bienvenida") {
                                     popUpTo(0) { inclusive = true }
                                 }
                             }
@@ -246,7 +256,7 @@ fun AppNavegacion() {
                 },
                 alCerrarSesion = {
                     SesionUsuarioManager.cerrarSesion()
-                    navController.navigate("login") {
+                    navController.navigate("bienvenida") {
                         popUpTo(0) { inclusive = true }
                     }
                 }

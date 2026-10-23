@@ -70,12 +70,15 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     Rol.EJECUTIVO -> TipoRolUsuario.EJECUTIVO_EMPRESA
                 }
 
+                val pinUsuario = dbHelper.obtenerPinUsuario(u)
+
                 SesionUsuarioManager.iniciarSesion(
                     nombre = usuarioEncontrado.nombre,
                     rut = usuarioEncontrado.rut,
                     correo = usuarioEncontrado.codigo,
                     rol = tipoRol,
-                    usuarioLogin = u
+                    usuarioLogin = u,
+                    pin = pinUsuario
                 )
 
                 _estadoUi.value = EstadoLogin.Exito
