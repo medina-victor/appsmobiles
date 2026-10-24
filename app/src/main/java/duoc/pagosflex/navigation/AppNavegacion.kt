@@ -16,7 +16,9 @@ import duoc.pagosflex.data.SesionUsuarioManager
 import duoc.pagosflex.ui.screens.PantallaAgregarCompromiso
 import duoc.pagosflex.ui.screens.PantallaAyuda
 import duoc.pagosflex.ui.screens.PantallaBienvenida
+import duoc.pagosflex.ui.screens.PantallaCasosAgente
 import duoc.pagosflex.ui.screens.PantallaDashboardEmpresa
+import duoc.pagosflex.ui.screens.PantallaDetalleTicket
 import duoc.pagosflex.ui.screens.PantallaHistorial
 import duoc.pagosflex.ui.screens.PantallaInicio
 import duoc.pagosflex.ui.screens.PantallaLogin
@@ -124,7 +126,7 @@ fun AppNavegacion() {
                 itemSeleccionado = itemNavegacionSeleccionado,
                 onTabSeleccionado = { indice, ruta ->
                     itemNavegacionSeleccionado = indice
-                    if (navController.currentDestination?.route != ruta) {
+                    if (ruta != "panel_agente" && ruta != "casos_agente" && navController.currentDestination?.route != ruta) {
                         navController.navigate(ruta) {
                             popUpTo("contenedor_principal") { saveState = true }
                             launchSingleTop = true
@@ -164,7 +166,7 @@ fun AppNavegacion() {
                             },
                             alCerrarSesion = {
                                 SesionUsuarioManager.cerrarSesion()
-                                navController.navigate("bienvenida") {
+                                navController.navigate("login") {
                                     popUpTo(0) { inclusive = true }
                                 }
                             }
@@ -174,7 +176,11 @@ fun AppNavegacion() {
                         PantallaDashboardEmpresa()
                     }
                     TipoRolUsuario.AGENTE_PAGOFLEX -> {
-                        PantallaPanelAgente()
+                        if (itemNavegacionSeleccionado == 1) {
+                            PantallaCasosAgente()
+                        } else {
+                            PantallaPanelAgente()
+                        }
                     }
                 }
             }
@@ -200,6 +206,24 @@ fun AppNavegacion() {
                 }
             }
             PantallaAyuda(
+                alVolverAtras = {
+                    navController.popBackStack()
+                },
+                alNavegarADetalle = { idTicket ->
+                    navController.navigate("detalle_ticket/$idTicket")
+                }
+            )
+        }
+
+        composable("detalle_ticket/{idTicket}") { backStackEntry ->
+            LaunchedEffect(usuarioSesion.esSesionActiva) {
+                if (!usuarioSesion.esSesionActiva) {
+                    navController.navigate("login") { popUpTo("bienvenida") { inclusive = true } }
+                }
+            }
+            val idTicket = backStackEntry.arguments?.getString("idTicket") ?: ""
+            PantallaDetalleTicket(
+                idTicket = idTicket,
                 alVolverAtras = {
                     navController.popBackStack()
                 }

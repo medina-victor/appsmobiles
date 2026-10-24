@@ -68,6 +68,7 @@ import duoc.pagosflex.data.SesionUsuarioManager
 import duoc.pagosflex.ui.components.BotonPrimario
 import duoc.pagosflex.util.NotificacionHelper
 import duoc.pagosflex.viewmodel.PerfilViewModel
+import duoc.pagosflex.viewmodel.TipoRolUsuario
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -84,6 +85,9 @@ fun PantallaPerfil(
     var autenticacionBiometrica by remember { mutableStateOf(false) }
     var nuevoAlias by remember { mutableStateOf(usuario.usuarioLogin) }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val tieneNumeros = nuevoAlias.any { it.isDigit() }
+    val errorAlias = if (tieneNumeros) "El alias no puede contener números" else null
 
     val galeriaLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -159,6 +163,27 @@ fun PantallaPerfil(
         }
     }
 
+    fun probarNotificacion() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val estadoPermiso = ContextCompat.checkSelfPermission(contexto, Manifest.permission.POST_NOTIFICATIONS)
+            if (estadoPermiso == PackageManager.PERMISSION_GRANTED) {
+                NotificacionHelper.mostrarNotificacionRecordatorio(
+                    contexto,
+                    "Pago Próximo a Vencer",
+                    "Tienes una cuota de PagoFlex pendiente que vence mañana."
+                )
+            } else {
+                permisoNotificacionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        } else {
+            NotificacionHelper.mostrarNotificacionRecordatorio(
+                contexto,
+                "Pago Próximo a Vencer",
+                "Tienes una cuota de PagoFlex pendiente que vence mañana."
+            )
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -230,6 +255,14 @@ fun PantallaPerfil(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
+                    if (usuario.usuarioLogin.isNotBlank()) {
+                        Text(
+                            text = "@${usuario.usuarioLogin}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Text(
                         text = if (usuario.correo.isNotBlank()) usuario.correo else "sin-correo@pagoflex.cl",
                         style = MaterialTheme.typography.bodyMedium,
@@ -250,22 +283,24 @@ fun PantallaPerfil(
                 }
             }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Gestión de Saldo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            if (usuario.rol == TipoRolUsuario.USUARIO_FINAL) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Gestión de Saldo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
 
-                    OutlinedButton(
-                        onClick = { CompromisoRepositorio.recargarSaldo(100000.0) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Recargar Saldo Cuenta (+$100.000)")
+                        OutlinedButton(
+                            onClick = { CompromisoRepositorio.recargarSaldo(100000.0) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Recargar Saldo Cuenta (+$100.000)")
+                        }
                     }
                 }
             }
@@ -282,6 +317,12 @@ fun PantallaPerfil(
                         value = nuevoAlias,
                         onValueChange = { nuevoAlias = it },
                         label = { Text("Nombre de Usuario / Alias") },
+                        isError = errorAlias != null,
+                        supportingText = {
+                            if (errorAlias != null) {
+                                Text(text = errorAlias, color = MaterialTheme.colorScheme.error)
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -289,7 +330,7 @@ fun PantallaPerfil(
                     BotonPrimario(
                         texto = "Guardar Alias",
                         onClick = { vistaModelo.guardarAliasUsuario(nuevoAlias) },
-                        habilitado = nuevoAlias.isNotBlank()
+                        habilitado = nuevoAlias.isNotBlank() && errorAlias == null
                     )
                 }
             }
@@ -336,26 +377,7 @@ fun PantallaPerfil(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     OutlinedButton(
-                        onClick = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                val estado = ContextCompat.checkSelfPermission(contexto, Manifest.permission.POST_NOTIFICATIONS)
-                                if (estado == PackageManager.PERMISSION_GRANTED) {
-                                    NotificacionHelper.mostrarNotificacionRecordatorio(
-                                        contexto,
-                                        "Pago Próximo a Vencer",
-                                        "Tienes una cuota de PagoFlex pendiente que vence mañana."
-                                    )
-                                } else {
-                                    permisoNotificacionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                }
-                            } else {
-                                NotificacionHelper.mostrarNotificacionRecordatorio(
-                                    contexto,
-                                    "Pago Próximo a Vencer",
-                                    "Tienes una cuota de PagoFlex pendiente que vence mañana."
-                                )
-                            }
-                        },
+                        onClick = { probarNotificacion() },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)
                     ) {

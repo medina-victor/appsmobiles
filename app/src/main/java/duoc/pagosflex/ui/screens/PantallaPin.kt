@@ -23,10 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,16 +32,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import duoc.pagosflex.viewmodel.PinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaPin(
     pinCorrecto: String,
     alPinCorrecto: () -> Unit,
-    alCerrarSesion: () -> Unit
+    alCerrarSesion: () -> Unit,
+    viewModel: PinViewModel = viewModel()
 ) {
-    var pinIngresado by remember { mutableStateOf("") }
-    var errorPin by remember { mutableStateOf(false) }
+    val pinIngresado by viewModel.pinIngresado.collectAsState()
+    val errorPin by viewModel.errorPin.collectAsState()
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background
@@ -120,23 +121,10 @@ fun PantallaPin(
                     fila.forEach { tecla ->
                         Button(
                             onClick = {
-                                errorPin = false
                                 when (tecla) {
-                                    "C" -> pinIngresado = ""
-                                    "⌫" -> if (pinIngresado.isNotEmpty()) pinIngresado = pinIngresado.dropLast(1)
-                                    else -> {
-                                        if (pinIngresado.length < 4) {
-                                            pinIngresado += tecla
-                                            if (pinIngresado.length == 4) {
-                                                if (pinIngresado == pinCorrecto) {
-                                                    alPinCorrecto()
-                                                } else {
-                                                    errorPin = true
-                                                    pinIngresado = ""
-                                                }
-                                            }
-                                        }
-                                    }
+                                    "C" -> viewModel.limpiar()
+                                    "⌫" -> viewModel.borrarUltimo()
+                                    else -> viewModel.ingresarDigito(tecla, pinCorrecto, alPinCorrecto)
                                 }
                             },
                             modifier = Modifier.size(72.dp),

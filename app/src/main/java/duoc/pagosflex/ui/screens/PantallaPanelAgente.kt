@@ -8,16 +8,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.ReportProblem
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -25,41 +26,37 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import duoc.pagosflex.data.CompromisoRepositorio
+import duoc.pagosflex.data.TicketRepositorio
+import duoc.pagosflex.data.TicketSoporteDto
 import duoc.pagosflex.ui.components.BadgeEstado
 import duoc.pagosflex.ui.components.TarjetaMetrica
 import duoc.pagosflex.util.aMonedaCLP
-
-data class TicketSoporte(
-    val id: String,
-    val usuario: String,
-    val asunto: String,
-    var estado: String
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PantallaPanelAgente() {
     val compromisos by CompromisoRepositorio.compromisos.collectAsState()
-    val tickets = remember {
-        mutableStateListOf(
-            TicketSoporte("TK-101", "Juan Pérez", "Error al procesar transferencia", "Pendiente"),
-            TicketSoporte("TK-102", "María González", "Comprobante no emitido en PDF", "En Revisión"),
-            TicketSoporte("TK-103", "Carlos Rojas", "Solicitud cambio de fecha vencimiento", "Resuelto")
-        )
-    }
+    val tickets by TicketRepositorio.tickets.collectAsState()
+
+    var ticketSeleccionado by remember { mutableStateOf<TicketSoporteDto?>(null) }
+    var textoRespuesta by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
@@ -67,40 +64,44 @@ fun PantallaPanelAgente() {
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { valoresPadding ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(valoresPadding)
-                .padding(16.dp)
-                .verticalScrollIfNeeded(),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TarjetaMetrica(
-                    titulo = "Tickets Abiertos",
-                    valor = tickets.count { it.estado != "Resuelto" }.toString(),
-                    icono = Icons.Default.ReportProblem,
-                    modifier = Modifier.weight(1f)
-                )
-                TarjetaMetrica(
-                    titulo = "Cuentas Registradas",
-                    valor = compromisos.size.toString(),
-                    icono = Icons.Default.AssignmentTurnedIn,
-                    modifier = Modifier.weight(1f)
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TarjetaMetrica(
+                        titulo = "Tickets Abiertos",
+                        valor = tickets.count { it.estado != "Resuelto" && it.estado != "Cerrado" }.toString(),
+                        icono = Icons.Default.ReportProblem,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TarjetaMetrica(
+                        titulo = "Cuentas Registradas",
+                        valor = compromisos.size.toString(),
+                        icono = Icons.Default.AssignmentTurnedIn,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            item {
+                Text(
+                    text = "Cuentas y Solicitudes de Clientes",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
                 )
             }
 
-            Text(
-                text = "Cuentas y Solicitudes de Clientes",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            LazyColumn(
-                modifier = Modifier.height(180.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(compromisos) { comp ->
+            if (compromisos.isEmpty()) {
+                item {
+                    Text("No hay cuentas registradas.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                items(compromisos, key = { it.id }) { comp ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
@@ -121,17 +122,21 @@ fun PantallaPanelAgente() {
                 }
             }
 
-            Text(
-                text = "Bandeja de Soporte de Usuarios",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Bandeja de Soporte de Usuarios",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-            LazyColumn(
-                modifier = Modifier.height(220.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(tickets) { item ->
+            if (tickets.isEmpty()) {
+                item {
+                    Text("No hay tickets de soporte.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            } else {
+                items(tickets, key = { it.id }) { item ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
@@ -147,31 +152,47 @@ fun PantallaPanelAgente() {
                                 BadgeEstado(item.estado)
                             }
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text("Usuario: ${item.usuario} • ID Ticket: ${item.id}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Usuario: ${item.usuario} • ID: ${item.id}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Mensaje: ${item.mensaje}", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 4.dp))
 
-                            if (item.estado != "Resuelto") {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    if (item.estado == "Pendiente") {
-                                        Button(
-                                            onClick = { item.estado = "En Revisión" },
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Icon(Icons.Default.Pending, contentDescription = null)
-                                            Spacer(modifier = Modifier.padding(start = 4.dp))
-                                            Text("Atender")
-                                        }
-                                    }
-                                    Button(
-                                        onClick = { item.estado = "Resuelto" },
-                                        shape = RoundedCornerShape(8.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                                        modifier = Modifier.weight(1f)
+                            if (item.respuesta.isNotBlank()) {
+                                Text("Respuesta: ${item.respuesta}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(
+                                    onClick = {
+                                        ticketSeleccionado = item
+                                        textoRespuesta = item.respuesta
+                                    },
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(Icons.Default.Pending, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.padding(start = 4.dp))
+                                    Text("Responder")
+                                }
+                                if (item.estado != "Resuelto") {
+                                    OutlinedButton(
+                                        onClick = { TicketRepositorio.cambiarEstadoTicket(item.id, "Resuelto") },
+                                        shape = RoundedCornerShape(8.dp)
                                     ) {
-                                        Icon(Icons.Default.Check, contentDescription = null)
+                                        Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.padding(start = 4.dp))
                                         Text("Resolver")
+                                    }
+                                }
+                                if (item.estado != "Cerrado") {
+                                    OutlinedButton(
+                                        onClick = { TicketRepositorio.cambiarEstadoTicket(item.id, "Cerrado") },
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.padding(start = 4.dp))
+                                        Text("Cerrar")
                                     }
                                 }
                             }
@@ -181,9 +202,44 @@ fun PantallaPanelAgente() {
             }
         }
     }
-}
 
-@Composable
-fun Modifier.verticalScrollIfNeeded(): Modifier {
-    return this.verticalScroll(rememberScrollState())
+    if (ticketSeleccionado != null) {
+        AlertDialog(
+            onDismissRequest = { ticketSeleccionado = null },
+            title = { Text("Responder Ticket ${ticketSeleccionado?.id}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Usuario: ${ticketSeleccionado?.usuario}", fontWeight = FontWeight.Bold)
+                    Text("Asunto: ${ticketSeleccionado?.asunto}")
+                    Text("Mensaje: ${ticketSeleccionado?.mensaje}")
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = textoRespuesta,
+                        onValueChange = { textoRespuesta = it },
+                        label = { Text("Escribir respuesta al cliente...") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        ticketSeleccionado?.let {
+                            TicketRepositorio.responderTicket(it.id, textoRespuesta, "En Proceso")
+                        }
+                        ticketSeleccionado = null
+                        textoRespuesta = ""
+                    },
+                    enabled = textoRespuesta.isNotBlank()
+                ) {
+                    Text("Enviar (En Proceso)")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { ticketSeleccionado = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 }

@@ -73,6 +73,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 val pinUsuario = dbHelper.obtenerPinUsuario(u)
 
                 SesionUsuarioManager.iniciarSesion(
+                    context = getApplication(),
                     nombre = usuarioEncontrado.nombre,
                     rut = usuarioEncontrado.rut,
                     correo = usuarioEncontrado.codigo,

@@ -13,11 +13,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
@@ -107,64 +111,152 @@ fun PantallaPrincipalContenedor(
                                 fontWeight = FontWeight.Bold
                             )
 
-                            Text(
-                                text = if (usuario.rut.isNotBlank()) "RUT: ${usuario.rut}" else "RUT: Sin especificar",
-                                color = Color.White.copy(alpha = 0.8f),
-                                style = MaterialTheme.typography.bodySmall
-                            )
-
                             if (usuario.usuarioLogin.isNotBlank()) {
                                 Text(
                                     text = "@${usuario.usuarioLogin}",
                                     color = Color.White.copy(alpha = 0.9f),
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
+
+                            Text(
+                                text = rolActual.titulo,
+                                color = Color.White.copy(alpha = 0.85f),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = null) },
-                        label = { Text("Mis Compromisos") },
-                        selected = true,
-                        onClick = {
-                            scope.launch { estadoDrawer.close() }
-                            onNavegarA("inicio")
-                        }
-                    )
+                    when (rolActual) {
+                        TipoRolUsuario.USUARIO_FINAL -> {
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.AccountBalanceWallet, contentDescription = null) },
+                                label = { Text("Panel Principal") },
+                                selected = true,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("contenedor_principal")
+                                }
+                            )
 
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.History, contentDescription = null) },
-                        label = { Text("Historial de Pagos") },
-                        selected = false,
-                        onClick = {
-                            scope.launch { estadoDrawer.close() }
-                            onNavegarA("historial")
-                        }
-                    )
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.History, contentDescription = null) },
+                                label = { Text("Historial de Pagos") },
+                                selected = false,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("historial")
+                                }
+                            )
 
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Security, contentDescription = null) },
-                        label = { Text("Seguridad y Privacidad") },
-                        selected = false,
-                        onClick = {
-                            scope.launch { estadoDrawer.close() }
-                            onNavegarA("terminos")
-                        }
-                    )
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.Security, contentDescription = null) },
+                                label = { Text("Seguridad y Privacidad") },
+                                selected = false,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("terminos")
+                                }
+                            )
 
-                    NavigationDrawerItem(
-                        icon = { Icon(Icons.Default.Help, contentDescription = null) },
-                        label = { Text("Centro de Ayuda") },
-                        selected = false,
-                        onClick = {
-                            scope.launch { estadoDrawer.close() }
-                            onNavegarA("ayuda")
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.Help, contentDescription = null) },
+                                label = { Text("Centro de Ayuda") },
+                                selected = false,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("ayuda")
+                                }
+                            )
                         }
-                    )
+                        TipoRolUsuario.AGENTE_PAGOFLEX -> {
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.SupportAgent, contentDescription = null) },
+                                label = { Text("Panel de Control y Soporte") },
+                                selected = true,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("contenedor_principal")
+                                }
+                            )
+
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.Security, contentDescription = null) },
+                                label = { Text("Seguridad y Privacidad") },
+                                selected = false,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("terminos")
+                                }
+                            )
+
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                                label = { Text("Mi Perfil y Ajustes") },
+                                selected = false,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("perfil")
+                                }
+                            )
+                        }
+                        TipoRolUsuario.EJECUTIVO_EMPRESA -> {
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.Business, contentDescription = null) },
+                                label = { Text("Panel Institucional / Cobranza") },
+                                selected = true,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("contenedor_principal")
+                                }
+                            )
+
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.CloudUpload, contentDescription = null) },
+                                label = { Text("Carga Masiva de Convenios") },
+                                selected = false,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("contenedor_principal")
+                                }
+                            )
+
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.Assessment, contentDescription = null) },
+                                label = { Text("Reportes Financieros") },
+                                selected = false,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("contenedor_principal")
+                                }
+                            )
+
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.Security, contentDescription = null) },
+                                label = { Text("Seguridad y Privacidad") },
+                                selected = false,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("terminos")
+                                }
+                            )
+
+                            NavigationDrawerItem(
+                                icon = { Icon(Icons.Default.Person, contentDescription = null) },
+                                label = { Text("Mi Perfil y Ajustes") },
+                                selected = false,
+                                onClick = {
+                                    scope.launch { estadoDrawer.close() }
+                                    onNavegarA("perfil")
+                                }
+                            )
+                        }
+                    }
 
                     Divider(modifier = Modifier.padding(vertical = 12.dp))
 

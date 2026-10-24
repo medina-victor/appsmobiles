@@ -25,13 +25,13 @@ object SesionUsuarioManager {
 
     fun inicializar(context: Context) {
         prefs = context.applicationContext.getSharedPreferences("pagoflex_sesion_prefs", Context.MODE_PRIVATE)
-        cargarSesionGuardada()
+        cargarSesionGuardada(context)
     }
 
     private val _usuarioActual = MutableStateFlow(UsuarioSesion())
     val usuarioActual: StateFlow<UsuarioSesion> = _usuarioActual.asStateFlow()
 
-    private fun cargarSesionGuardada() {
+    private fun cargarSesionGuardada(context: Context) {
         val p = prefs ?: return
         val activa = p.getBoolean("es_activa", false)
         if (activa) {
@@ -41,9 +41,11 @@ object SesionUsuarioManager {
             val rolName = p.getString("rol", TipoRolUsuario.USUARIO_FINAL.name) ?: TipoRolUsuario.USUARIO_FINAL.name
             val usuarioLogin = p.getString("usuario_login", "") ?: ""
             val pin = p.getString("pin", "1111") ?: "1111"
-            val fotoUriStr = p.getString("foto_uri", null)
-            val fotoUri = if (!fotoUriStr.isNullOrBlank()) Uri.parse(fotoUriStr) else null
             val rol = try { TipoRolUsuario.valueOf(rolName) } catch (_: Exception) { TipoRolUsuario.USUARIO_FINAL }
+
+            val dbHelper = UsuarioDbHelper(context)
+            val fotoStr = dbHelper.obtenerFotoUsuario(correo.ifBlank { rut }) ?: p.getString("foto_uri", null)
+            val fotoUri = if (!fotoStr.isNullOrBlank()) Uri.parse(fotoStr) else null
 
             _usuarioActual.value = UsuarioSesion(
                 nombre = nombre,
@@ -61,17 +63,27 @@ object SesionUsuarioManager {
     }
 
     fun iniciarSesion(
+        context: Context? = null,
         nombre: String,
         rut: String = "",
         correo: String = "",
         rol: TipoRolUsuario = TipoRolUsuario.USUARIO_FINAL,
-        fotoUri: Uri? = null,
         usuarioLogin: String = "",
         pin: String = "1111"
     ) {
         val login = if (usuarioLogin.isBlank()) {
             if (correo.contains("@")) correo.substringBefore("@") else nombre
         } else usuarioLogin
+
+        val fotoUri = if (context != null) {
+            try {
+                val dbHelper = UsuarioDbHelper(context)
+                val fotoStr = dbHelper.obtenerFotoUsuario(correo.ifBlank { rut })
+                if (!fotoStr.isNullOrBlank()) Uri.parse(fotoStr) else null
+            } catch (_: Exception) {
+                null
+            }
+        } else null
 
         _usuarioActual.value = UsuarioSesion(
             nombre = nombre,
@@ -101,14 +113,18 @@ object SesionUsuarioManager {
     }
 
     fun actualizarFoto(context: Context, uri: Uri?) {
+        val dbHelper = UsuarioDbHelper(context)
+        val correoActual = _usuarioActual.value.correo.ifBlank { _usuarioActual.value.rut }
+
         if (uri == null) {
             _usuarioActual.value = _usuarioActual.value.copy(fotoUri = null)
+            dbHelper.actualizarFotoUsuario(correoActual, null)
             prefs?.edit()?.remove("foto_uri")?.apply()
             return
         }
 
         try {
-            val archivo = File(context.filesDir, "avatar_perfil_guardado.jpg")
+            val archivo = File(context.filesDir, "avatar_${correoActual.hashCode()}.jpg")
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 archivo.outputStream().use { outputStream ->
                     inputStream.copyTo(outputStream)
@@ -116,9 +132,11 @@ object SesionUsuarioManager {
             }
             val archivoUri = Uri.fromFile(archivo)
             _usuarioActual.value = _usuarioActual.value.copy(fotoUri = archivoUri)
+            dbHelper.actualizarFotoUsuario(correoActual, archivoUri.toString())
             prefs?.edit()?.putString("foto_uri", archivoUri.toString())?.apply()
         } catch (_: Exception) {
             _usuarioActual.value = _usuarioActual.value.copy(fotoUri = uri)
+            dbHelper.actualizarFotoUsuario(correoActual, uri.toString())
             prefs?.edit()?.putString("foto_uri", uri.toString())?.apply()
         }
     }

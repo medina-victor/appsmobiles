@@ -55,8 +55,8 @@ fun BarraNavegacionDinamica(
             ElementoNavegacion("Perfil", Icons.Default.Person, "perfil")
         )
         TipoRolUsuario.AGENTE_PAGOFLEX -> listOf(
-            ElementoNavegacion("Soporte", Icons.Default.SupportAgent, Rutas.PanelAgente.ruta),
-            ElementoNavegacion("Casos", Icons.Default.AccountBalanceWallet, Rutas.PanelAgente.ruta),
+            ElementoNavegacion("Soporte", Icons.Default.SupportAgent, "panel_agente"),
+            ElementoNavegacion("Casos", Icons.Default.AccountBalanceWallet, "casos_agente"),
             ElementoNavegacion("Perfil", Icons.Default.Person, "perfil")
         )
     }

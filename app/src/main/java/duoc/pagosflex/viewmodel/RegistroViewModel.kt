@@ -209,6 +209,7 @@ class RegistroViewModel(application: Application) : AndroidViewModel(application
 
             if (guardadoExitoso) {
                 SesionUsuarioManager.iniciarSesion(
+                    context = getApplication(),
                     nombre = nombre.value.trim(),
                     rut = formatearRut(rut.value),
                     correo = correo.value.trim(),
