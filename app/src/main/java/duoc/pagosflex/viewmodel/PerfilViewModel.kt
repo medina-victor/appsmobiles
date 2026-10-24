@@ -1,7 +1,8 @@
 package duoc.pagosflex.viewmodel
 
+import android.app.Application
 import android.net.Uri
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import duoc.pagosflex.data.SesionUsuarioManager
 import duoc.pagosflex.data.UsuarioSesion
@@ -10,7 +11,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
-class PerfilViewModel : ViewModel() {
+class PerfilViewModel(application: Application) : AndroidViewModel(application) {
 
     val usuarioSesion: StateFlow<UsuarioSesion> = SesionUsuarioManager.usuarioActual
         .stateIn(
@@ -22,7 +23,7 @@ class PerfilViewModel : ViewModel() {
     var aliasUsuario = MutableStateFlow("")
 
     fun actualizarFotoPerfil(uri: Uri?) {
-        SesionUsuarioManager.actualizarFoto(uri)
+        SesionUsuarioManager.actualizarFoto(getApplication(), uri)
     }
 
     fun guardarAliasUsuario(nuevoAlias: String) {

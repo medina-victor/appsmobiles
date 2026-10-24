@@ -178,6 +178,13 @@ class RegistroViewModel(application: Application) : AndroidViewModel(application
     fun registrarUsuario(alExito: () -> Unit) {
         if (!formularioValido.value) return
 
+        if (dbHelper.existeRutOCorreo(formatearRut(rut.value), correo.value.trim())) {
+            _estadoUi.value = EstadoRegistro.Error("Este RUT o correo ya se encuentra registrado.")
+            errorRut.value = "RUT o correo ya registrado"
+            errorCorreo.value = "RUT o correo ya registrado"
+            return
+        }
+
         viewModelScope.launch {
             _estadoUi.value = EstadoRegistro.Cargando
             delay(1000)
@@ -206,7 +213,8 @@ class RegistroViewModel(application: Application) : AndroidViewModel(application
                     rut = formatearRut(rut.value),
                     correo = correo.value.trim(),
                     rol = rolSeleccionado.value,
-                    usuarioLogin = correo.value.trim()
+                    usuarioLogin = correo.value.trim(),
+                    pin = pinSeguridad.value
                 )
                 _estadoUi.value = EstadoRegistro.Exito
                 alExito()

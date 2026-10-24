@@ -100,6 +100,15 @@ class UsuarioDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         }
     }
 
+    fun existeRutOCorreo(rut: String, correo: String): Boolean {
+        val db = readableDatabase
+        val query = "SELECT 1 FROM $TABLE_USUARIOS WHERE $COL_RUT = ? OR $COL_CORREO = ?"
+        val cursor = db.rawQuery(query, arrayOf(rut, correo))
+        val existe = cursor.moveToFirst()
+        cursor.close()
+        return existe
+    }
+
     fun obtenerPinUsuario(identificador: String): String {
         val db = readableDatabase
         val query = "SELECT $COL_PIN FROM $TABLE_USUARIOS WHERE $COL_CORREO = ? OR $COL_RUT = ? OR $COL_NOMBRE = ?"

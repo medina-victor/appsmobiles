@@ -7,6 +7,7 @@ import duoc.pagosflex.viewmodel.TipoRolUsuario
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.io.File
 
 data class UsuarioSesion(
     val nombre: String = "",
@@ -40,6 +41,8 @@ object SesionUsuarioManager {
             val rolName = p.getString("rol", TipoRolUsuario.USUARIO_FINAL.name) ?: TipoRolUsuario.USUARIO_FINAL.name
             val usuarioLogin = p.getString("usuario_login", "") ?: ""
             val pin = p.getString("pin", "1111") ?: "1111"
+            val fotoUriStr = p.getString("foto_uri", null)
+            val fotoUri = if (!fotoUriStr.isNullOrBlank()) Uri.parse(fotoUriStr) else null
             val rol = try { TipoRolUsuario.valueOf(rolName) } catch (_: Exception) { TipoRolUsuario.USUARIO_FINAL }
 
             _usuarioActual.value = UsuarioSesion(
@@ -47,6 +50,7 @@ object SesionUsuarioManager {
                 rut = rut,
                 correo = correo,
                 rol = rol,
+                fotoUri = fotoUri,
                 usuarioLogin = usuarioLogin,
                 pin = pin,
                 esSesionActiva = true
@@ -88,6 +92,7 @@ object SesionUsuarioManager {
             putString("rol", rol.name)
             putString("usuario_login", login)
             putString("pin", pin)
+            putString("foto_uri", fotoUri?.toString())
             apply()
         }
 
@@ -95,8 +100,27 @@ object SesionUsuarioManager {
         CompromisoRepositorio.inicializarParaUsuario(esDemo)
     }
 
-    fun actualizarFoto(uri: Uri?) {
-        _usuarioActual.value = _usuarioActual.value.copy(fotoUri = uri)
+    fun actualizarFoto(context: Context, uri: Uri?) {
+        if (uri == null) {
+            _usuarioActual.value = _usuarioActual.value.copy(fotoUri = null)
+            prefs?.edit()?.remove("foto_uri")?.apply()
+            return
+        }
+
+        try {
+            val archivo = File(context.filesDir, "avatar_perfil_guardado.jpg")
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                archivo.outputStream().use { outputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
+            val archivoUri = Uri.fromFile(archivo)
+            _usuarioActual.value = _usuarioActual.value.copy(fotoUri = archivoUri)
+            prefs?.edit()?.putString("foto_uri", archivoUri.toString())?.apply()
+        } catch (_: Exception) {
+            _usuarioActual.value = _usuarioActual.value.copy(fotoUri = uri)
+            prefs?.edit()?.putString("foto_uri", uri.toString())?.apply()
+        }
     }
 
     fun actualizarUsuarioLogin(nuevoUsuario: String) {

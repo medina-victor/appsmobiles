@@ -1,6 +1,7 @@
 package duoc.pagosflex.ui.screens
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Lock
@@ -44,7 +46,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,9 +59,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import duoc.pagosflex.data.CompromisoRepositorio
+import duoc.pagosflex.data.SesionUsuarioManager
 import duoc.pagosflex.ui.components.BotonPrimario
 import duoc.pagosflex.util.NotificacionHelper
 import duoc.pagosflex.viewmodel.PerfilViewModel
@@ -81,39 +85,21 @@ fun PantallaPerfil(
     var nuevoAlias by remember { mutableStateOf(usuario.usuarioLogin) }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
 
-    val permisosLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { _ ->
-    }
-
-    LaunchedEffect(Unit) {
-        val listaPermisos = mutableListOf(
-            Manifest.permission.CAMERA
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            listaPermisos.add(Manifest.permission.READ_MEDIA_IMAGES)
-            listaPermisos.add(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            listaPermisos.add(Manifest.permission.READ_EXTERNAL_STORAGE)
-        }
-        permisosLauncher.launch(listaPermisos.toTypedArray())
-    }
-
     val galeriaLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { vistaModelo.actualizarFotoPerfil(it) }
+        uri?.let { SesionUsuarioManager.actualizarFoto(contexto, it) }
     }
 
     val camaraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { exito ->
         if (exito && tempCameraUri != null) {
-            vistaModelo.actualizarFotoPerfil(tempCameraUri)
+            SesionUsuarioManager.actualizarFoto(contexto, tempCameraUri)
         }
     }
 
-    fun tomarFoto() {
+    fun lanzarCamaraReal() {
         val archivo = File(contexto.cacheDir, "foto_perfil_${System.currentTimeMillis()}.jpg")
         val uri = FileProvider.getUriForFile(
             contexto,
@@ -122,6 +108,55 @@ fun PantallaPerfil(
         )
         tempCameraUri = uri
         camaraLauncher.launch(uri)
+    }
+
+    val permisoCamaraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            lanzarCamaraReal()
+        }
+    }
+
+    val permisoGaleriaLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { concedido ->
+        if (concedido) {
+            galeriaLauncher.launch("image/*")
+        }
+    }
+
+    val permisoNotificacionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        NotificacionHelper.mostrarNotificacionRecordatorio(
+            contexto,
+            "Pago Próximo a Vencer",
+            "Tienes una cuota de PagoFlex pendiente que vence mañana."
+        )
+    }
+
+    fun tomarFoto() {
+        val estadoPermiso = ContextCompat.checkSelfPermission(contexto, Manifest.permission.CAMERA)
+        if (estadoPermiso == PackageManager.PERMISSION_GRANTED) {
+            lanzarCamaraReal()
+        } else {
+            permisoCamaraLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    fun abrirGaleria() {
+        val permiso = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        val estadoPermiso = ContextCompat.checkSelfPermission(contexto, permiso)
+        if (estadoPermiso == PackageManager.PERMISSION_GRANTED) {
+            galeriaLauncher.launch("image/*")
+        } else {
+            permisoGaleriaLauncher.launch(permiso)
+        }
     }
 
     Scaffold(
@@ -171,7 +206,7 @@ fun PantallaPerfil(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { galeriaLauncher.launch("image/*") }) {
+                OutlinedButton(onClick = { abrirGaleria() }) {
                     Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Galería")
@@ -212,6 +247,26 @@ fun PantallaPerfil(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 4.dp)
                     )
+                }
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Gestión de Saldo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+                    OutlinedButton(
+                        onClick = { CompromisoRepositorio.recargarSaldo(100000.0) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Recargar Saldo Cuenta (+$100.000)")
+                    }
                 }
             }
 
@@ -282,11 +337,24 @@ fun PantallaPerfil(
 
                     OutlinedButton(
                         onClick = {
-                            NotificacionHelper.mostrarNotificacionRecordatorio(
-                                contexto,
-                                "Pago Próximo a Vencer",
-                                "Tienes una cuota de Duoc UC por $145.000 que vence mañana."
-                            )
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                val estado = ContextCompat.checkSelfPermission(contexto, Manifest.permission.POST_NOTIFICATIONS)
+                                if (estado == PackageManager.PERMISSION_GRANTED) {
+                                    NotificacionHelper.mostrarNotificacionRecordatorio(
+                                        contexto,
+                                        "Pago Próximo a Vencer",
+                                        "Tienes una cuota de PagoFlex pendiente que vence mañana."
+                                    )
+                                } else {
+                                    permisoNotificacionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            } else {
+                                NotificacionHelper.mostrarNotificacionRecordatorio(
+                                    contexto,
+                                    "Pago Próximo a Vencer",
+                                    "Tienes una cuota de PagoFlex pendiente que vence mañana."
+                                )
+                            }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp)

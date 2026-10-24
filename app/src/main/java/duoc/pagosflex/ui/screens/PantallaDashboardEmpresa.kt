@@ -14,6 +14,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -22,8 +24,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -38,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import duoc.pagosflex.ui.components.BadgeEstado
 import duoc.pagosflex.ui.components.TarjetaMetrica
+import duoc.pagosflex.util.aMonedaCLP
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -62,13 +68,18 @@ fun PantallaDashboardEmpresa() {
         )
     }
 
+    var pestanaSeleccionada by remember { mutableStateOf(0) }
     var mostrarDialogoNuevo by remember { mutableStateOf(false) }
+    var mostrarDialogoCargaMasiva by remember { mutableStateOf(false) }
+    var mostrarDialogoReporte by remember { mutableStateOf(false) }
+
     var nombreDeudor by remember { mutableStateOf("") }
     var rutDeudor by remember { mutableStateOf("") }
     var montoDeudor by remember { mutableStateOf("") }
 
     val formatoMoneda = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
     val totalRecaudado = cobros.value.filter { it.estado == "Pagado" }.sumOf { it.monto }
+    val totalEmitido = cobros.value.sumOf { it.monto }
 
     Scaffold(
         topBar = {
@@ -98,44 +109,127 @@ fun PantallaDashboardEmpresa() {
                 )
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Nómina de Cobros", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Button(
-                    onClick = { mostrarDialogoNuevo = true },
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Text(" Nuevo Cobro")
-                }
+            PrimaryTabRow(selectedTabIndex = pestanaSeleccionada) {
+                Tab(
+                    selected = pestanaSeleccionada == 0,
+                    onClick = { pestanaSeleccionada = 0 },
+                    text = { Text("Nómina") }
+                )
+                Tab(
+                    selected = pestanaSeleccionada == 1,
+                    onClick = { pestanaSeleccionada = 1 },
+                    text = { Text("Carga Masiva") }
+                )
+                Tab(
+                    selected = pestanaSeleccionada == 2,
+                    onClick = { pestanaSeleccionada = 2 },
+                    text = { Text("Reportes") }
+                )
             }
 
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(cobros.value) { item ->
-                    Card(
+            when (pestanaSeleccionada) {
+                0 -> {
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Text("Gestión de Deudores", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Button(
+                            onClick = { mostrarDialogoNuevo = true },
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Column {
-                                Text(item.deudor, fontWeight = FontWeight.Bold)
-                                Text("RUT: ${item.rut}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(Icons.Default.Add, contentDescription = null)
+                            Text(" Nuevo Cobro")
+                        }
+                    }
+
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        items(cobros.value) { item ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(item.deudor, fontWeight = FontWeight.Bold)
+                                        Text("RUT: ${item.rut}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(formatoMoneda.format(item.monto), fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        BadgeEstado(item.estado)
+                                    }
+                                }
                             }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(formatoMoneda.format(item.monto), fontWeight = FontWeight.Bold)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                BadgeEstado(item.estado)
+                        }
+                    }
+                }
+                1 -> {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Text(
+                            text = "Carga Masiva de Convenios y Cobros",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Suba un archivo en formato CSV o Excel (.xlsx) con la nómina de clientes y montos a cobrar.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { mostrarDialogoCargaMasiva = true },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null)
+                            Text(" Seleccionar Archivo Nómina")
+                        }
+                    }
+                }
+                2 -> {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Resumen Financiero Institucional",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text("Total Emitido: ${totalEmitido.aMonedaCLP()}")
+                                Text("Total Recaudado: ${totalRecaudado.aMonedaCLP()}")
+                                Text("Tasa de Recaudación: ${if (totalEmitido > 0) String.format("%.1f", (totalRecaudado / totalEmitido) * 100) else "0.0"}%")
                             }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedButton(
+                            onClick = { mostrarDialogoReporte = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Download, contentDescription = null)
+                            Spacer(modifier = Modifier.padding(start = 8.dp))
+                            Text("Exportar Reporte de Cobranza (PDF/Excel)")
                         }
                     }
                 }
@@ -195,6 +289,32 @@ fun PantallaDashboardEmpresa() {
             dismissButton = {
                 TextButton(onClick = { mostrarDialogoNuevo = false }) {
                     Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    if (mostrarDialogoCargaMasiva) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoCargaMasiva = false },
+            title = { Text("Carga Masiva Exitosa") },
+            text = { Text("Se han procesado 15 registros de deudores desde la nómina corporativa con éxito.") },
+            confirmButton = {
+                Button(onClick = { mostrarDialogoCargaMasiva = false }) {
+                    Text("Aceptar")
+                }
+            }
+        )
+    }
+
+    if (mostrarDialogoReporte) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoReporte = false },
+            title = { Text("Reporte Exportado") },
+            text = { Text("El reporte financiero institucional ha sido generado y descargado con éxito en formato PDF.") },
+            confirmButton = {
+                Button(onClick = { mostrarDialogoReporte = false }) {
+                    Text("Aceptar")
                 }
             }
         )

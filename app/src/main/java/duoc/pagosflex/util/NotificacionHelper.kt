@@ -4,9 +4,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import duoc.pagosflex.R
 
 object NotificacionHelper {
     private const val CHANNEL_ID = "pagoflex_pagos_channel"
@@ -22,21 +22,30 @@ object NotificacionHelper {
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Canal para notificaciones push de pagos pendientes"
+                enableVibration(true)
+                enableLights(true)
             }
             notificationManager.createNotificationChannel(channel)
         }
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(android.R.drawable.ic_popup_reminder)
             .setContentTitle(titulo)
             .setContentText(mensaje)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setAutoCancel(true)
 
         try {
-            NotificationManagerCompat.from(context).notify(System.currentTimeMillis().toInt(), builder.build())
+            if (NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+                NotificationManagerCompat.from(context).notify(System.currentTimeMillis().toInt(), builder.build())
+                Toast.makeText(context, "Notificación push enviada", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "Active las notificaciones en los ajustes de su dispositivo", Toast.LENGTH_LONG).show()
+            }
         } catch (_: SecurityException) {
+            Toast.makeText(context, "Permiso de notificaciones denegado", Toast.LENGTH_SHORT).show()
         }
     }
 }

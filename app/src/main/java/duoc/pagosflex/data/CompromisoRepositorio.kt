@@ -1,5 +1,7 @@
 package duoc.pagosflex.data
 
+import android.content.Context
+import android.content.SharedPreferences
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +29,13 @@ data class ItemHistorial(
 )
 
 object CompromisoRepositorio {
+    private var prefs: SharedPreferences? = null
+
+    fun inicializar(context: Context) {
+        prefs = context.applicationContext.getSharedPreferences("pagoflex_repo_prefs", Context.MODE_PRIVATE)
+        cargarDatosGuardados()
+    }
+
     private val _saldoCuenta = MutableStateFlow(550000.0)
     val saldoCuenta: StateFlow<Double> = _saldoCuenta.asStateFlow()
 
@@ -48,19 +57,80 @@ object CompromisoRepositorio {
     )
     val historial: StateFlow<List<ItemHistorial>> = _historial.asStateFlow()
 
-    fun inicializarParaUsuario(esDemo: Boolean) {
-        if (esDemo) {
-            _saldoCuenta.value = 550000.0
-            _compromisos.value = listOf(
-                Compromiso("C-101", "PagoFlex Educación", "Arancel Cuota", 145000.0, "05/11/2026", 5, 10),
-                Compromiso("C-102", "PagoFlex Servicios", "Consumo Agua", 24500.0, "12/11/2026", 1, 1),
-                Compromiso("C-103", "PagoFlex Tránsito", "Tag Mensual", 18900.0, "20/11/2026", 1, 1),
-                Compromiso("C-104", "PagoFlex Hipotecario", "Dividendo Cuota", 385000.0, "15/11/2026", 12, 240)
-            )
-        } else {
-            _saldoCuenta.value = 150000.0
-            _compromisos.value = emptyList()
+    private fun cargarDatosGuardados() {
+        val p = prefs ?: return
+        val saldoGuardado = p.getFloat("saldo_cuenta", -1f)
+        if (saldoGuardado >= 0f) {
+            _saldoCuenta.value = saldoGuardado.toDouble()
         }
+
+        val compStr = p.getString("compromisos_data", null)
+        if (!compStr.isNullOrBlank()) {
+            try {
+                val lista = compStr.split(";;").mapNotNull { item ->
+                    val parts = item.split("|")
+                    if (parts.size >= 8) {
+                        Compromiso(parts[0], parts[1], parts[2], parts[3].toDouble(), parts[4], parts[5].toInt(), parts[6].toInt(), parts[7])
+                    } else null
+                }
+                if (lista.isNotEmpty()) {
+                    _compromisos.value = lista
+                }
+            } catch (_: Exception) {
+            }
+        }
+
+        val histStr = p.getString("historial_data", null)
+        if (!histStr.isNullOrBlank()) {
+            try {
+                val lista = histStr.split(";;").mapNotNull { item ->
+                    val parts = item.split("|")
+                    if (parts.size >= 5) {
+                        ItemHistorial(parts[0], parts[1], parts[2], parts[3], parts[4].toDouble())
+                    } else null
+                }.toMutableList()
+                if (lista.isNotEmpty()) {
+                    _historial.value = lista
+                }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun guardarEstado() {
+        val p = prefs ?: return
+        val editor = p.edit()
+        editor.putFloat("saldo_cuenta", _saldoCuenta.value.toFloat())
+
+        val compStr = _compromisos.value.joinToString(";;") {
+            "${it.id}|${it.institucion}|${it.concepto}|${it.monto}|${it.fechaVencimiento}|${it.cuotaActual}|${it.totalCuotas}|${it.estado}"
+        }
+        editor.putString("compromisos_data", compStr)
+
+        val histStr = _historial.value.joinToString(";;") {
+            "${it.idTransaccion}|${it.institucion}|${it.concepto}|${it.fecha}|${it.monto}"
+        }
+        editor.putString("historial_data", histStr)
+        editor.apply()
+    }
+
+    fun inicializarParaUsuario(esDemo: Boolean) {
+        val p = prefs
+        val saldoPrevio = p?.getFloat("saldo_cuenta", -1f) ?: -1f
+        if (saldoPrevio < 0f) {
+            if (esDemo) {
+                _saldoCuenta.value = 550000.0
+            } else {
+                _saldoCuenta.value = 150000.0
+                _compromisos.value = emptyList()
+            }
+            guardarEstado()
+        }
+    }
+
+    fun recargarSaldo(monto: Double) {
+        _saldoCuenta.value += monto
+        guardarEstado()
     }
 
     fun obtenerCompromiso(id: String): Compromiso? {
@@ -71,6 +141,7 @@ object CompromisoRepositorio {
         val listaActual = _compromisos.value.toMutableList()
         listaActual.add(0, compromiso)
         _compromisos.value = listaActual
+        guardarEstado()
     }
 
     fun registrarPagoExitoso(idCompromiso: String, idTransaccion: String, monto: Double): Boolean {
@@ -109,6 +180,7 @@ object CompromisoRepositorio {
         }
 
         _compromisos.value = listaActualizada
+        guardarEstado()
         return true
     }
 }
