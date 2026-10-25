@@ -40,7 +40,7 @@ object CompromisoRepositorio {
         appContext?.let { VerificadorVencimientos.verificarYNotificar(it, _compromisos.value) }
     }
 
-    private val _saldoCuenta = MutableStateFlow(550000.0)
+    private val _saldoCuenta = MutableStateFlow(2500000.0)
     val saldoCuenta: StateFlow<Double> = _saldoCuenta.asStateFlow()
 
     private val _compromisos = MutableStateFlow(
@@ -122,10 +122,8 @@ object CompromisoRepositorio {
         val p = prefs
         val saldoPrevio = p?.getFloat("saldo_cuenta", -1f) ?: -1f
         if (saldoPrevio < 0f) {
-            if (esDemo) {
-                _saldoCuenta.value = 550000.0
-            } else {
-                _saldoCuenta.value = 150000.0
+            _saldoCuenta.value = 2500000.0
+            if (!esDemo) {
                 _compromisos.value = emptyList()
             }
             guardarEstado()

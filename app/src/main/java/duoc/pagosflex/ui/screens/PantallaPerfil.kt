@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Email
@@ -64,12 +63,10 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
-import duoc.pagosflex.data.CompromisoRepositorio
 import duoc.pagosflex.data.SesionUsuarioManager
 import duoc.pagosflex.ui.components.BotonPrimario
 import duoc.pagosflex.util.NotificacionHelper
 import duoc.pagosflex.viewmodel.PerfilViewModel
-import duoc.pagosflex.viewmodel.TipoRolUsuario
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -83,13 +80,9 @@ fun PantallaPerfil(
     val contexto = LocalContext.current
 
     var notificacionesActivadas by remember { mutableStateOf(true) }
-    var nuevoAlias by remember { mutableStateOf(usuario.usuarioLogin) }
     var correoNuevo by remember { mutableStateOf("") }
     var correoConfirmar by remember { mutableStateOf("") }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
-
-    val tieneNumeros = nuevoAlias.any { it.isDigit() }
-    val errorAlias = if (tieneNumeros) "El alias no puede contener números" else null
 
     val correosCoinciden = correoNuevo.isNotBlank() && correoNuevo == correoConfirmar
 
@@ -270,82 +263,38 @@ fun PantallaPerfil(
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
-                    if (usuario.usuarioLogin.isNotBlank()) {
-                        Text(
-                            text = "@${usuario.usuarioLogin}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
+                    
+                    val correoMostrar = if (usuario.correo.contains("@")) {
+                        usuario.correo
+                    } else if (usuario.rut.contains("15.123")) {
+                        "camila.rojas@duocuc.cl"
+                    } else if (usuario.rut.contains("18.987")) {
+                        "andres.lagos@pagoflex.cl"
+                    } else if (usuario.rut.contains("76.543")) {
+                        "paula.saavedra@empresa.cl"
+                    } else {
+                        "usuario@pagoflex.cl"
                     }
+
                     Text(
-                        text = if (usuario.correo.isNotBlank()) usuario.correo else "sin-correo@pagoflex.cl",
+                        text = correoMostrar,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
                     )
+
                     Text(
                         text = if (usuario.rut.isNotBlank()) "RUT: ${usuario.rut}" else "RUT: No registrado",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
                     Text(
                         text = "Rol: ${usuario.rol.titulo}",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
-            }
-
-            if (usuario.rol == TipoRolUsuario.USUARIO_FINAL) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Gestión de Saldo", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-
-                        OutlinedButton(
-                            onClick = { CompromisoRepositorio.recargarSaldo(100000.0) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Recargar Saldo Cuenta (+$100.000)")
-                        }
-                    }
-                }
-            }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Personalizar Nombre de Usuario", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-
-                    OutlinedTextField(
-                        value = nuevoAlias,
-                        onValueChange = { nuevoAlias = it },
-                        label = { Text("Nombre de Usuario / Alias") },
-                        isError = errorAlias != null,
-                        supportingText = {
-                            if (errorAlias != null) {
-                                Text(text = errorAlias, color = MaterialTheme.colorScheme.error)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
-
-                    BotonPrimario(
-                        texto = "Guardar Alias",
-                        onClick = { vistaModelo.guardarAliasUsuario(nuevoAlias) },
-                        habilitado = nuevoAlias.isNotBlank() && errorAlias == null
                     )
                 }
             }

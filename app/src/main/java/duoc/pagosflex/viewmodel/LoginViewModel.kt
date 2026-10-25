@@ -76,7 +76,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                     context = getApplication(),
                     nombre = usuarioEncontrado.nombre,
                     rut = usuarioEncontrado.rut,
-                    correo = usuarioEncontrado.codigo,
+                    correo = usuarioEncontrado.correo,
                     rol = tipoRol,
                     usuarioLogin = u,
                     pin = pinUsuario

@@ -167,12 +167,19 @@ class UsuarioDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     }
 
     fun actualizarAliasUsuario(identificador: String, nuevoAlias: String): Boolean {
-        if (existeAlias(nuevoAlias)) return false
-        val db = writableDatabase
+        val dbR = readableDatabase
+        val queryExiste = "SELECT 1 FROM $TABLE_USUARIOS WHERE $COL_LOGIN = ? AND $COL_CORREO != ? AND $COL_RUT != ?"
+        val cursor = dbR.rawQuery(queryExiste, arrayOf(nuevoAlias.lowercase(), identificador, identificador))
+        val ocupadoPorOtro = cursor.moveToFirst()
+        cursor.close()
+
+        if (ocupadoPorOtro) return false
+
+        val dbW = writableDatabase
         val values = ContentValues().apply {
             put(COL_LOGIN, nuevoAlias.lowercase())
         }
-        val filas = db.update(TABLE_USUARIOS, values, "$COL_CORREO = ? OR $COL_RUT = ? OR $COL_ID = ?", arrayOf(identificador, identificador, identificador))
+        val filas = dbW.update(TABLE_USUARIOS, values, "$COL_CORREO = ? OR $COL_RUT = ? OR $COL_LOGIN = ?", arrayOf(identificador, identificador, identificador))
         return filas > 0
     }
 
@@ -192,6 +199,7 @@ class UsuarioDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
                 id = cursor.getString(cursor.getColumnIndexOrThrow(COL_ID)),
                 nombre = cursor.getString(cursor.getColumnIndexOrThrow(COL_NOMBRE)),
                 rut = cursor.getString(cursor.getColumnIndexOrThrow(COL_RUT)),
+                correo = cursor.getString(cursor.getColumnIndexOrThrow(COL_CORREO)) ?: "",
                 rol = try {
                     Rol.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(COL_ROL)))
                 } catch (_: Exception) {

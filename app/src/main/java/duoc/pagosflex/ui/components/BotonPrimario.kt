@@ -10,6 +10,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -24,8 +28,16 @@ fun BotonPrimario(
     habilitado: Boolean = true,
     cargando: Boolean = false
 ) {
+    var ultimoClickTiempo by remember { mutableStateOf(0L) }
+
     Button(
-        onClick = onClick,
+        onClick = {
+            val ahora = System.currentTimeMillis()
+            if (ahora - ultimoClickTiempo > 500L) {
+                ultimoClickTiempo = ahora
+                onClick()
+            }
+        },
         enabled = habilitado && !cargando,
         modifier = modifier
             .fillMaxWidth()

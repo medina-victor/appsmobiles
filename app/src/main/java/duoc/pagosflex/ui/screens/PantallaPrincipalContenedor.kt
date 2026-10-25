@@ -1,5 +1,6 @@
 package duoc.pagosflex.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -33,9 +34,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,7 +46,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.CompositionLocalProvider
 import coil.compose.AsyncImage
 import duoc.pagosflex.data.SesionUsuarioManager
 import duoc.pagosflex.ui.components.BarraNavegacionDinamica
@@ -65,6 +66,10 @@ fun PantallaPrincipalContenedor(
     val estadoDrawer = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val usuario by SesionUsuarioManager.usuarioActual.collectAsState()
+
+    BackHandler(enabled = estadoDrawer.isOpen) {
+        scope.launch { estadoDrawer.close() }
+    }
 
     val abrirDrawerLambda: () -> Unit = {
         scope.launch {
@@ -237,7 +242,7 @@ fun PantallaPrincipalContenedor(
                                     selected = false,
                                     onClick = {
                                         scope.launch { estadoDrawer.close() }
-                                        onNavegarA("contenedor_principal")
+                                        onNavegarA("carga_empresa")
                                     }
                                 )
 
@@ -247,7 +252,7 @@ fun PantallaPrincipalContenedor(
                                     selected = false,
                                     onClick = {
                                         scope.launch { estadoDrawer.close() }
-                                        onNavegarA("contenedor_principal")
+                                        onNavegarA("reportes_empresa")
                                     }
                                 )
 
