@@ -51,6 +51,7 @@ import duoc.pagosflex.ui.components.TarjetaBalance
 import duoc.pagosflex.util.aMonedaCLP
 import duoc.pagosflex.viewmodel.CompromisoResumen
 import duoc.pagosflex.viewmodel.InicioViewModel
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,6 +138,40 @@ fun PantallaInicio(
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            item {
+                val totalCuotasG = compromisos.sumOf { it.totalCuotas }
+                val cuotasPagadasG = compromisos.sumOf { (it.cuotaActual - 1).coerceAtLeast(0) }
+                val porcentajeCumplimiento = if (totalCuotasG > 0) (cuotasPagadasG.toFloat() / totalCuotasG.toFloat()).coerceIn(0f, 1f) else 1.0f
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Resumen de Finanzas y Nivel de Cumplimiento",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Avance General de Pagos: ${String.format(Locale("es", "CL"), "%.1f%%", porcentajeCumplimiento * 100)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        LinearProgressIndicator(
+                            progress = { porcentajeCumplimiento },
+                            modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
                         )
                     }
                 }
@@ -244,7 +279,7 @@ fun TarjetaCompromisoEnriquecida(
 
             Spacer(modifier = Modifier.height(8.dp))
             LinearProgressIndicator(
-                progress = progreso,
+                progress = { progreso },
                 modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)

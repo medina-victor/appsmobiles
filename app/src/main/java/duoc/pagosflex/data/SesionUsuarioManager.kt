@@ -43,9 +43,9 @@ object SesionUsuarioManager {
             val pin = p.getString("pin", "1111") ?: "1111"
             val rol = try { TipoRolUsuario.valueOf(rolName) } catch (_: Exception) { TipoRolUsuario.USUARIO_FINAL }
 
+            val keyUsuario = rut.ifBlank { correo }
             val dbHelper = UsuarioDbHelper(context)
-            val identifier = correo.ifBlank { rut }
-            val fotoStr = dbHelper.obtenerFotoUsuario(identifier) ?: p.getString("foto_uri_$identifier", null)
+            val fotoStr = dbHelper.obtenerFotoUsuario(keyUsuario) ?: p.getString("foto_uri_$keyUsuario", null)
             val fotoUri = if (!fotoStr.isNullOrBlank()) Uri.parse(fotoStr) else null
 
             _usuarioActual.value = UsuarioSesion(
@@ -76,11 +76,11 @@ object SesionUsuarioManager {
             if (correo.contains("@")) correo.substringBefore("@") else nombre
         } else usuarioLogin
 
-        val identifier = correo.ifBlank { rut }
+        val keyUsuario = rut.ifBlank { correo }
         val fotoStr = if (context != null) {
             try {
                 val dbHelper = UsuarioDbHelper(context)
-                dbHelper.obtenerFotoUsuario(identifier) ?: prefs?.getString("foto_uri_$identifier", null)
+                dbHelper.obtenerFotoUsuario(keyUsuario) ?: prefs?.getString("foto_uri_$keyUsuario", null)
             } catch (_: Exception) {
                 null
             }
@@ -107,7 +107,9 @@ object SesionUsuarioManager {
             putString("usuario_login", login)
             putString("pin", pin)
             if (fotoUri != null) {
-                putString("foto_uri_$identifier", fotoUri.toString())
+                putString("foto_uri_$keyUsuario", fotoUri.toString())
+            } else {
+                remove("foto_uri_$keyUsuario")
             }
             apply()
         }
@@ -117,18 +119,18 @@ object SesionUsuarioManager {
     }
 
     fun actualizarFoto(context: Context, uri: Uri?) {
-        val identifier = _usuarioActual.value.correo.ifBlank { _usuarioActual.value.rut }
+        val keyUsuario = _usuarioActual.value.rut.ifBlank { _usuarioActual.value.correo }
         val dbHelper = UsuarioDbHelper(context)
 
         if (uri == null) {
             _usuarioActual.value = _usuarioActual.value.copy(fotoUri = null)
-            dbHelper.actualizarFotoUsuario(identifier, null)
-            prefs?.edit()?.remove("foto_uri_$identifier")?.apply()
+            dbHelper.actualizarFotoUsuario(keyUsuario, null)
+            prefs?.edit()?.remove("foto_uri_$keyUsuario")?.apply()
             return
         }
 
         try {
-            val archivo = File(context.filesDir, "avatar_${identifier.hashCode()}.jpg")
+            val archivo = File(context.filesDir, "avatar_${keyUsuario.hashCode()}.jpg")
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 archivo.outputStream().use { outputStream ->
                     inputStream.copyTo(outputStream)
@@ -136,12 +138,12 @@ object SesionUsuarioManager {
             }
             val archivoUri = Uri.fromFile(archivo)
             _usuarioActual.value = _usuarioActual.value.copy(fotoUri = archivoUri)
-            dbHelper.actualizarFotoUsuario(identifier, archivoUri.toString())
-            prefs?.edit()?.putString("foto_uri_$identifier", archivoUri.toString())?.apply()
+            dbHelper.actualizarFotoUsuario(keyUsuario, archivoUri.toString())
+            prefs?.edit()?.putString("foto_uri_$keyUsuario", archivoUri.toString())?.apply()
         } catch (_: Exception) {
             _usuarioActual.value = _usuarioActual.value.copy(fotoUri = uri)
-            dbHelper.actualizarFotoUsuario(identifier, uri.toString())
-            prefs?.edit()?.putString("foto_uri_$identifier", uri.toString())?.apply()
+            dbHelper.actualizarFotoUsuario(keyUsuario, uri.toString())
+            prefs?.edit()?.putString("foto_uri_$keyUsuario", uri.toString())?.apply()
         }
     }
 
@@ -169,6 +171,6 @@ object SesionUsuarioManager {
 
     fun cerrarSesion() {
         _usuarioActual.value = UsuarioSesion(esSesionActiva = false)
-        prefs?.edit()?.remove("es_activa")?.remove("nombre")?.remove("rut")?.remove("correo")?.remove("rol")?.remove("usuario_login")?.remove("pin")?.apply()
+        prefs?.edit()?.remove("es_activa")?.apply()
     }
 }

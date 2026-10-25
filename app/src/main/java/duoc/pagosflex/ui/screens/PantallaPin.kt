@@ -93,7 +93,7 @@ fun PantallaPin(
                 )
 
                 Text(
-                    text = if (estaSuspendido) "Demasiados intentos erróneos. Espere para reintentar." else "Para continuar, ingrese su PIN de 4 dígitos (Demo: 1111)",
+                    text = if (estaSuspendido) "Demasiados intentos erróneos. Espere para reintentar." else "Para continuar, ingrese su PIN de 4 dígitos",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
