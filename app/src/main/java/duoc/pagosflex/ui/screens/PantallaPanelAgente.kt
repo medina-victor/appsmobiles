@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Pending
 import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material3.AlertDialog
@@ -25,6 +26,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -42,25 +44,37 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import duoc.pagosflex.data.CompromisoRepositorio
 import duoc.pagosflex.data.TicketRepositorio
 import duoc.pagosflex.data.TicketSoporteDto
 import duoc.pagosflex.ui.components.BadgeEstado
 import duoc.pagosflex.ui.components.TarjetaMetrica
 import duoc.pagosflex.util.aMonedaCLP
+import duoc.pagosflex.viewmodel.PanelAgenteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaPanelAgente() {
-    val compromisos by CompromisoRepositorio.compromisos.collectAsState()
-    val tickets by TicketRepositorio.tickets.collectAsState()
+fun PantallaPanelAgente(
+    alAbrirDrawer: () -> Unit = {},
+    viewModel: PanelAgenteViewModel = viewModel()
+) {
+    val compromisos by viewModel.compromisos.collectAsState()
+    val tickets by viewModel.tickets.collectAsState()
 
     var ticketSeleccionado by remember { mutableStateOf<TicketSoporteDto?>(null) }
     var textoRespuesta by remember { mutableStateOf("") }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Panel de Control Agente PagoFlex", fontWeight = FontWeight.Bold) })
+            TopAppBar(
+                title = { Text("Panel de Control Agente", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = alAbrirDrawer) {
+                        Icon(imageVector = Icons.Default.Menu, contentDescription = "Menú")
+                    }
+                }
+            )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { valoresPadding ->
@@ -225,7 +239,7 @@ fun PantallaPanelAgente() {
                 Button(
                     onClick = {
                         ticketSeleccionado?.let {
-                            TicketRepositorio.responderTicket(it.id, textoRespuesta, "En Proceso")
+                            viewModel.responderTicket(it.id, textoRespuesta, "En Proceso")
                         }
                         ticketSeleccionado = null
                         textoRespuesta = ""

@@ -6,12 +6,13 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.SupportAgent
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,7 +52,8 @@ fun BarraNavegacionDinamica(
         )
         TipoRolUsuario.EJECUTIVO_EMPRESA -> listOf(
             ElementoNavegacion("Cobranza", Icons.Default.Business, Rutas.DashboardEmpresa.ruta),
-            ElementoNavegacion("Cobros", Icons.Default.ReceiptLong, Rutas.DashboardEmpresa.ruta),
+            ElementoNavegacion("Emitir Cobro", Icons.Default.Add, Rutas.DashboardEmpresa.ruta),
+            ElementoNavegacion("Reportes", Icons.Default.Assessment, Rutas.DashboardEmpresa.ruta),
             ElementoNavegacion("Perfil", Icons.Default.Person, "perfil")
         )
         TipoRolUsuario.AGENTE_PAGOFLEX -> listOf(

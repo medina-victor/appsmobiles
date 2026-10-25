@@ -116,6 +116,15 @@ class UsuarioDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         return existe
     }
 
+    fun existeAlias(alias: String): Boolean {
+        val db = readableDatabase
+        val query = "SELECT 1 FROM $TABLE_USUARIOS WHERE $COL_LOGIN = ?"
+        val cursor = db.rawQuery(query, arrayOf(alias.lowercase()))
+        val existe = cursor.moveToFirst()
+        cursor.close()
+        return existe
+    }
+
     fun obtenerPinUsuario(identificador: String): String {
         val db = readableDatabase
         val query = "SELECT $COL_PIN FROM $TABLE_USUARIOS WHERE $COL_CORREO = ? OR $COL_RUT = ? OR $COL_NOMBRE = ? OR $COL_LOGIN = ?"
@@ -146,6 +155,25 @@ class UsuarioDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
         }
         cursor.close()
         return foto
+    }
+
+    fun actualizarCorreoUsuario(identificadorAntiguo: String, nuevoCorreo: String) {
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_CORREO, nuevoCorreo)
+            put(COL_LOGIN, nuevoCorreo.substringBefore("@").lowercase())
+        }
+        db.update(TABLE_USUARIOS, values, "$COL_CORREO = ? OR $COL_RUT = ? OR $COL_LOGIN = ?", arrayOf(identificadorAntiguo, identificadorAntiguo, identificadorAntiguo))
+    }
+
+    fun actualizarAliasUsuario(identificador: String, nuevoAlias: String): Boolean {
+        if (existeAlias(nuevoAlias)) return false
+        val db = writableDatabase
+        val values = ContentValues().apply {
+            put(COL_LOGIN, nuevoAlias.lowercase())
+        }
+        val filas = db.update(TABLE_USUARIOS, values, "$COL_CORREO = ? OR $COL_RUT = ? OR $COL_ID = ?", arrayOf(identificador, identificador, identificador))
+        return filas > 0
     }
 
     fun verificarCredenciales(identificador: String, contrasena: String): Usuario? {
@@ -191,6 +219,8 @@ class UsuarioDbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAM
     ): Boolean {
         val db = writableDatabase
         val loginAlias = correo.substringBefore("@").lowercase()
+        if (existeAlias(loginAlias)) return false
+
         val values = ContentValues().apply {
             put(COL_ID, "usr_" + System.currentTimeMillis())
             put(COL_NOMBRE, nombre)

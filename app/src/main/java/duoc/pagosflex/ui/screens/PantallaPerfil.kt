@@ -26,8 +26,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ExitToApp
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Security
@@ -82,12 +82,15 @@ fun PantallaPerfil(
     val contexto = LocalContext.current
 
     var notificacionesActivadas by remember { mutableStateOf(true) }
-    var autenticacionBiometrica by remember { mutableStateOf(false) }
     var nuevoAlias by remember { mutableStateOf(usuario.usuarioLogin) }
+    var correoNuevo by remember { mutableStateOf("") }
+    var correoConfirmar by remember { mutableStateOf("") }
     var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
 
     val tieneNumeros = nuevoAlias.any { it.isDigit() }
     val errorAlias = if (tieneNumeros) "El alias no puede contener números" else null
+
+    val correosCoinciden = correoNuevo.isNotBlank() && correoNuevo == correoConfirmar
 
     val galeriaLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -335,6 +338,52 @@ fun PantallaPerfil(
                 }
             }
 
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Actualizar Correo Electrónico", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+
+                    OutlinedTextField(
+                        value = correoNuevo,
+                        onValueChange = { correoNuevo = it },
+                        label = { Text("Nuevo Correo Electrónico") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) }
+                    )
+
+                    OutlinedTextField(
+                        value = correoConfirmar,
+                        onValueChange = { correoConfirmar = it },
+                        label = { Text("Confirmar Nuevo Correo Electrónico") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                        isError = correoConfirmar.isNotBlank() && !correosCoinciden,
+                        supportingText = {
+                            if (correoConfirmar.isNotBlank() && !correosCoinciden) {
+                                Text(text = "Los correos no coinciden", color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    )
+
+                    BotonPrimario(
+                        texto = "Cambiar Correo",
+                        onClick = {
+                            if (correosCoinciden && android.util.Patterns.EMAIL_ADDRESS.matcher(correoNuevo).matches()) {
+                                SesionUsuarioManager.actualizarCorreo(contexto, correoNuevo)
+                                correoNuevo = ""
+                                correoConfirmar = ""
+                            }
+                        },
+                        habilitado = correosCoinciden && android.util.Patterns.EMAIL_ADDRESS.matcher(correoNuevo).matches()
+                    )
+                }
+            }
+
             Text(
                 text = "Configuración y Notificaciones",
                 style = MaterialTheme.typography.titleMedium,
@@ -359,19 +408,6 @@ fun PantallaPerfil(
                             Text("Notificaciones push de vencimiento")
                         }
                         Switch(checked = notificacionesActivadas, onCheckedChange = { notificacionesActivadas = it })
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Lock, contentDescription = null)
-                            Spacer(modifier = Modifier.padding(start = 8.dp))
-                            Text("Autenticación biométrica")
-                        }
-                        Switch(checked = autenticacionBiometrica, onCheckedChange = { autenticacionBiometrica = it })
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))

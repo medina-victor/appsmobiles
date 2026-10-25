@@ -2,6 +2,7 @@ package duoc.pagosflex.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import duoc.pagosflex.util.VerificadorVencimientos
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,10 +31,13 @@ data class ItemHistorial(
 
 object CompromisoRepositorio {
     private var prefs: SharedPreferences? = null
+    private var appContext: Context? = null
 
     fun inicializar(context: Context) {
+        appContext = context.applicationContext
         prefs = context.applicationContext.getSharedPreferences("pagoflex_repo_prefs", Context.MODE_PRIVATE)
         cargarDatosGuardados()
+        appContext?.let { VerificadorVencimientos.verificarYNotificar(it, _compromisos.value) }
     }
 
     private val _saldoCuenta = MutableStateFlow(550000.0)
@@ -126,6 +130,7 @@ object CompromisoRepositorio {
             }
             guardarEstado()
         }
+        appContext?.let { VerificadorVencimientos.verificarYNotificar(it, _compromisos.value) }
     }
 
     fun recargarSaldo(monto: Double) {
@@ -142,6 +147,7 @@ object CompromisoRepositorio {
         listaActual.add(0, compromiso)
         _compromisos.value = listaActual
         guardarEstado()
+        appContext?.let { VerificadorVencimientos.verificarYNotificar(it, _compromisos.value) }
     }
 
     fun registrarPagoExitoso(idCompromiso: String, idTransaccion: String, monto: Double): Boolean {

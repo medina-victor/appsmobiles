@@ -9,9 +9,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -28,12 +32,21 @@ import duoc.pagosflex.util.aMonedaCLP
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PantallaCasosAgente() {
+fun PantallaCasosAgente(
+    alAbrirDrawer: () -> Unit = {}
+) {
     val compromisos by CompromisoRepositorio.compromisos.collectAsState()
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Gestión de Casos y Solicitudes", fontWeight = FontWeight.Bold) })
+            TopAppBar(
+                title = { Text("Gestión de Casos", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = alAbrirDrawer) {
+                        Icon(imageVector = Icons.Default.Menu, contentDescription = "Menú")
+                    }
+                }
+            )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { valoresPadding ->

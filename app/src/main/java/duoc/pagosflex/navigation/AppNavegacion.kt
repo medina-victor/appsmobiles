@@ -126,11 +126,18 @@ fun AppNavegacion() {
                 itemSeleccionado = itemNavegacionSeleccionado,
                 onTabSeleccionado = { indice, ruta ->
                     itemNavegacionSeleccionado = indice
-                    if (ruta != "panel_agente" && ruta != "casos_agente" && navController.currentDestination?.route != ruta) {
-                        navController.navigate(ruta) {
-                            popUpTo("contenedor_principal") { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
+                    if (ruta == "perfil" || ruta == "historial" || ruta.startsWith("pago/")) {
+                        if (navController.currentDestination?.route != ruta) {
+                            navController.navigate(ruta) {
+                                launchSingleTop = true
+                            }
+                        }
+                    } else {
+                        if (navController.currentDestination?.route != "contenedor_principal") {
+                            navController.navigate("contenedor_principal") {
+                                popUpTo("contenedor_principal") { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
                     }
                 },
@@ -150,36 +157,55 @@ fun AppNavegacion() {
             ) { alAbrirDrawer ->
                 when (rolActual) {
                     TipoRolUsuario.USUARIO_FINAL -> {
-                        PantallaInicio(
-                            alAbrirDrawer = alAbrirDrawer,
-                            alNavegarAPagar = { compromisoId ->
-                                navController.navigate("pago/$compromisoId")
-                            },
-                            alNavegarAAgregar = {
-                                navController.navigate("agregar_compromiso")
-                            },
-                            alNavegarAHistorial = {
-                                navController.navigate("historial")
-                            },
-                            alNavegarAAyuda = {
-                                navController.navigate("ayuda")
-                            },
-                            alCerrarSesion = {
-                                SesionUsuarioManager.cerrarSesion()
-                                navController.navigate("login") {
-                                    popUpTo(0) { inclusive = true }
+                        if (itemNavegacionSeleccionado == 1) {
+                            PantallaPago(idCompromiso = "C-101", alVolverAtras = { itemNavegacionSeleccionado = 0 })
+                        } else {
+                            PantallaInicio(
+                                alAbrirDrawer = alAbrirDrawer,
+                                alNavegarAPagar = { compromisoId ->
+                                    navController.navigate("pago/$compromisoId")
+                                },
+                                alNavegarAAgregar = {
+                                    navController.navigate("agregar_compromiso")
+                                },
+                                alNavegarAHistorial = {
+                                    navController.navigate("historial")
+                                },
+                                alNavegarAAyuda = {
+                                    navController.navigate("ayuda")
+                                },
+                                alCerrarSesion = {
+                                    SesionUsuarioManager.cerrarSesion()
+                                    navController.navigate("login") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                     TipoRolUsuario.EJECUTIVO_EMPRESA -> {
-                        PantallaDashboardEmpresa()
+                        when (itemNavegacionSeleccionado) {
+                            1 -> PantallaDashboardEmpresa(
+                                alAbrirDrawer = alAbrirDrawer,
+                                abrirDialogoNuevo = true,
+                                pestanaInicial = 0,
+                                alCerrarDialogoNuevo = { itemNavegacionSeleccionado = 0 }
+                            )
+                            2 -> PantallaDashboardEmpresa(
+                                alAbrirDrawer = alAbrirDrawer,
+                                pestanaInicial = 2
+                            )
+                            else -> PantallaDashboardEmpresa(
+                                alAbrirDrawer = alAbrirDrawer,
+                                pestanaInicial = 0
+                            )
+                        }
                     }
                     TipoRolUsuario.AGENTE_PAGOFLEX -> {
                         if (itemNavegacionSeleccionado == 1) {
-                            PantallaCasosAgente()
+                            PantallaCasosAgente(alAbrirDrawer = alAbrirDrawer)
                         } else {
-                            PantallaPanelAgente()
+                            PantallaPanelAgente(alAbrirDrawer = alAbrirDrawer)
                         }
                     }
                 }
@@ -206,6 +232,7 @@ fun AppNavegacion() {
                 }
             }
             PantallaAyuda(
+
                 alVolverAtras = {
                     navController.popBackStack()
                 },

@@ -44,7 +44,8 @@ object SesionUsuarioManager {
             val rol = try { TipoRolUsuario.valueOf(rolName) } catch (_: Exception) { TipoRolUsuario.USUARIO_FINAL }
 
             val dbHelper = UsuarioDbHelper(context)
-            val fotoStr = dbHelper.obtenerFotoUsuario(correo.ifBlank { rut }) ?: p.getString("foto_uri", null)
+            val identifier = correo.ifBlank { rut }
+            val fotoStr = dbHelper.obtenerFotoUsuario(identifier) ?: p.getString("foto_uri_$identifier", null)
             val fotoUri = if (!fotoStr.isNullOrBlank()) Uri.parse(fotoStr) else null
 
             _usuarioActual.value = UsuarioSesion(
@@ -75,15 +76,16 @@ object SesionUsuarioManager {
             if (correo.contains("@")) correo.substringBefore("@") else nombre
         } else usuarioLogin
 
-        val fotoUri = if (context != null) {
+        val identifier = correo.ifBlank { rut }
+        val fotoStr = if (context != null) {
             try {
                 val dbHelper = UsuarioDbHelper(context)
-                val fotoStr = dbHelper.obtenerFotoUsuario(correo.ifBlank { rut })
-                if (!fotoStr.isNullOrBlank()) Uri.parse(fotoStr) else null
+                dbHelper.obtenerFotoUsuario(identifier) ?: prefs?.getString("foto_uri_$identifier", null)
             } catch (_: Exception) {
                 null
             }
         } else null
+        val fotoUri = if (!fotoStr.isNullOrBlank()) Uri.parse(fotoStr) else null
 
         _usuarioActual.value = UsuarioSesion(
             nombre = nombre,
@@ -104,7 +106,9 @@ object SesionUsuarioManager {
             putString("rol", rol.name)
             putString("usuario_login", login)
             putString("pin", pin)
-            putString("foto_uri", fotoUri?.toString())
+            if (fotoUri != null) {
+                putString("foto_uri_$identifier", fotoUri.toString())
+            }
             apply()
         }
 
@@ -113,18 +117,18 @@ object SesionUsuarioManager {
     }
 
     fun actualizarFoto(context: Context, uri: Uri?) {
+        val identifier = _usuarioActual.value.correo.ifBlank { _usuarioActual.value.rut }
         val dbHelper = UsuarioDbHelper(context)
-        val correoActual = _usuarioActual.value.correo.ifBlank { _usuarioActual.value.rut }
 
         if (uri == null) {
             _usuarioActual.value = _usuarioActual.value.copy(fotoUri = null)
-            dbHelper.actualizarFotoUsuario(correoActual, null)
-            prefs?.edit()?.remove("foto_uri")?.apply()
+            dbHelper.actualizarFotoUsuario(identifier, null)
+            prefs?.edit()?.remove("foto_uri_$identifier")?.apply()
             return
         }
 
         try {
-            val archivo = File(context.filesDir, "avatar_${correoActual.hashCode()}.jpg")
+            val archivo = File(context.filesDir, "avatar_${identifier.hashCode()}.jpg")
             context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 archivo.outputStream().use { outputStream ->
                     inputStream.copyTo(outputStream)
@@ -132,12 +136,29 @@ object SesionUsuarioManager {
             }
             val archivoUri = Uri.fromFile(archivo)
             _usuarioActual.value = _usuarioActual.value.copy(fotoUri = archivoUri)
-            dbHelper.actualizarFotoUsuario(correoActual, archivoUri.toString())
-            prefs?.edit()?.putString("foto_uri", archivoUri.toString())?.apply()
+            dbHelper.actualizarFotoUsuario(identifier, archivoUri.toString())
+            prefs?.edit()?.putString("foto_uri_$identifier", archivoUri.toString())?.apply()
         } catch (_: Exception) {
             _usuarioActual.value = _usuarioActual.value.copy(fotoUri = uri)
-            dbHelper.actualizarFotoUsuario(correoActual, uri.toString())
-            prefs?.edit()?.putString("foto_uri", uri.toString())?.apply()
+            dbHelper.actualizarFotoUsuario(identifier, uri.toString())
+            prefs?.edit()?.putString("foto_uri_$identifier", uri.toString())?.apply()
+        }
+    }
+
+    fun actualizarCorreo(context: Context, nuevoCorreo: String) {
+        val correoAnterior = _usuarioActual.value.correo.ifBlank { _usuarioActual.value.rut }
+        _usuarioActual.value = _usuarioActual.value.copy(correo = nuevoCorreo, usuarioLogin = nuevoCorreo.substringBefore("@"))
+
+        prefs?.edit()?.apply {
+            putString("correo", nuevoCorreo)
+            putString("usuario_login", nuevoCorreo.substringBefore("@"))
+            apply()
+        }
+
+        try {
+            val dbHelper = UsuarioDbHelper(context)
+            dbHelper.actualizarCorreoUsuario(correoAnterior, nuevoCorreo)
+        } catch (_: Exception) {
         }
     }
 
@@ -148,6 +169,6 @@ object SesionUsuarioManager {
 
     fun cerrarSesion() {
         _usuarioActual.value = UsuarioSesion(esSesionActiva = false)
-        prefs?.edit()?.clear()?.apply()
+        prefs?.edit()?.remove("es_activa")?.remove("nombre")?.remove("rut")?.remove("correo")?.remove("rol")?.remove("usuario_login")?.remove("pin")?.apply()
     }
 }
